@@ -312,12 +312,19 @@ Some rules it follows, none of which are visible when they work:
   the history panel rather than the counter, which is where you were looking.
 
 On Android the buzz is the [Vibration API](https://developer.mozilla.org/docs/Web/API/Navigator/vibrate).
-Safari has never implemented it, so an iPhone borrows a tick instead: **+** and
-**−** each carry an invisible native switch control (`<input type="checkbox"
-switch>`, Safari 17.4) laid exactly over the button, and iOS plays its system
-tap when a finger toggles one. The button still does the work — the tap is
-forwarded to it — and the press animation is driven from the wrapper, because
-`:active` now lands on the switch rather than the button.
+Safari has never implemented it, so an iPhone borrows a tick instead. Every
+tappable control — **+**, **−**, the ⚙, the sync pill, the history disclosure,
+*Add*, *Export*, *Reset* and each history row's **×** — carries an invisible
+native switch control (`<input type="checkbox" switch>`, Safari 17.4) laid
+exactly over it, and iOS plays its system tap when a finger toggles one. The
+button still does the work — the tap is forwarded to it — and the press
+animation is driven from the wrapper, because `:active` now lands on the switch
+rather than the button.
+
+The wrapper takes on whatever the button was doing in its parent's layout:
+hugging it, stretching to share a row, or spanning a card. That is stated per
+control rather than guessed, because getting it wrong collapses the button
+inside to the width of its own text.
 
 The limits of that are worth stating, because they shape the code:
 

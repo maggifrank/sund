@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c">
+<title>Sund · haptics lab</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📳</text></svg>">
+<!-- A throwaway diagnostic, not part of the app. It answers one question the
+     web cannot answer from here: which ways of toggling WebKit's native switch
+     control still make an iPhone tick, now that iOS 26.5 has closed the script
+     path. Tap each test, say whether you felt it, and send the summary back.
+     Delete this file once the answer is known. -->
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: max(16px, env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom));
+    background: #071c2a;
+    color: #e6f3fa;
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .lede { color: #8fb2c6; font-size: 14px; margin: 0 0 18px; }
+  .gate {
+    border: 1px solid #1b4257; border-radius: 12px; padding: 10px 12px;
+    font-size: 13px; color: #8fb2c6; margin-bottom: 18px;
+  }
+  .gate b { color: #e6f3fa; font-weight: 600; }
+
+  .test {
+    border: 1px solid #1b4257; border-radius: 14px;
+    padding: 12px; margin-bottom: 12px; background: #0e2a3c;
+  }
+  .test h2 { font-size: 15px; margin: 0 0 2px; }
+  .test p { font-size: 13px; color: #8fb2c6; margin: 0 0 10px; }
+
+  /* The thing under test is always a real native switch, invisible, over a
+     button — the same arrangement the app uses. */
+  .pad { position: relative; display: block; width: 100%; }
+  .fire {
+    width: 100%; font: inherit; font-weight: 600; font-size: 15px;
+    padding: 14px; border-radius: 10px; border: none;
+    background: #35a8d6; color: #03222f; cursor: pointer;
+  }
+  .pad input[switch] {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    margin: 0; opacity: 0; clip-path: inset(0 round 10px); cursor: pointer;
+  }
+  .pad--plain input[switch] { display: none; }
+
+  .verdict { display: flex; gap: 8px; margin-top: 10px; }
+  .verdict button {
+    flex: 1; font: inherit; font-size: 14px; padding: 9px;
+    border-radius: 9px; border: 1px solid #1b4257;
+    background: transparent; color: #8fb2c6; cursor: pointer;
+  }
+  .test[data-felt="yes"] { border-color: #4bd39b; }
+  .test[data-felt="yes"] .yes { background: #4bd39b; color: #03222f; border-color: #4bd39b; }
+  .test[data-felt="no"] .no { background: #ff8a6b; color: #03222f; border-color: #ff8a6b; }
+
+  /* Test 9: a strip to drag a finger across. */
+  .strip { display: flex; gap: 2px; height: 56px; }
+  .strip label { position: relative; flex: 1; background: #14374c; border-radius: 4px; }
+  .strip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; }
+
+  select { font: inherit; width: 100%; padding: 12px; border-radius: 10px;
+           background: #14374c; color: #e6f3fa; border: 1px solid #1b4257; }
+
+  .out {
+    width: 100%; min-height: 120px; font: 13px/1.5 ui-monospace, Menlo, monospace;
+    background: #04141e; color: #8fb2c6; border: 1px solid #1b4257;
+    border-radius: 12px; padding: 12px; margin-top: 8px;
+  }
+  .copy {
+    width: 100%; font: inherit; font-weight: 600; padding: 12px; margin-top: 8px;
+    border-radius: 10px; border: none; background: #f5c542; color: #241c00; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Haptics lab 📳</h1>
+  <p class="lede">Tap each <b>Fire</b>, then say whether you felt anything. Test 1 is the
+     one already working in the app — if that one doesn't tick, something else is wrong.</p>
+
+  <div class="gate" id="gate"></div>
+
+  <div id="tests"></div>
+
+  <h2 style="font-size:15px;margin:22px 0 4px">Summary</h2>
+  <p class="lede" style="margin-bottom:8px">Send this back.</p>
+  <textarea class="out" id="out" readonly></textarea>
+  <button class="copy" id="copy">Copy summary</button>
+</main>
+
+<script>
+/* Each test builds its own controls and runs one attempt per tap. The switches
+   are real and native in every case; what varies is who toggles them. */
+const TESTS = [
+  {
+    id: 1, name: 'Direct tap on a switch',
+    note: 'The baseline — your finger toggles it. This is what the app does now.',
+    build: (pad) => { pad.append(makeSwitch()); }
+  },
+  {
+    id: 2, name: 'Script toggle, inside the tap',
+    note: 'Your finger hits a plain button; its click handler toggles a switch with .click().',
+    plain: true,
+    build: (pad, fire) => {
+      const sw = makeSwitch(true);
+      pad.append(sw);
+      fire.addEventListener('click', () => sw.click());
+    }
+  },
+  {
+    id: 3, name: 'Script toggle via a label, inside the tap',
+    note: 'The same, but the click goes through a <label> — the technique the old libraries used.',
+    plain: true,
+    build: (pad, fire) => {
+      const label = document.createElement('label');
+      const sw = makeSwitch(true);
+      label.append(sw);
+      pad.append(label);
+      fire.addEventListener('click', () => label.click());
+    }
+  },
+  {
+    id: 4, name: 'checked = !checked, inside the tap',
+    note: 'Setting the property directly and firing a change event, rather than clicking.',
+    plain: true,
+    build: (pad, fire) => {
+      const sw = makeSwitch(true);
+      pad.append(sw);
+      fire.addEventListener('click', () => {
+        sw.checked = !sw.checked;
+        sw.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+  },
+  {
+    id: 5, name: 'Script toggle from touchstart',
+    note: 'Same as 2, but fired the instant your finger lands rather than when it lifts.',
+    plain: true,
+    build: (pad, fire) => {
+      const sw = makeSwitch(true);
+      pad.append(sw);
+      fire.addEventListener('touchstart', () => sw.click(), { passive: true });
+    }
+  },
+  {
+    id: 6, name: 'Real tap, then 3 script toggles',
+    note: 'THE IMPORTANT ONE. A real tap on a switch, then three more toggles 60ms apart. ' +
+          'If you feel four ticks, milestone patterns are possible. One tick means only the tap counts.',
+    build: (pad) => {
+      const sw = makeSwitch();
+      const extra = makeSwitch(true);
+      pad.append(sw, extra);
+      sw.addEventListener('click', () => {
+        for (const delay of [60, 120, 180]) setTimeout(() => extra.click(), delay);
+      });
+    }
+  },
+  {
+    id: 7, name: 'Real tap, then one toggle 400ms later',
+    note: 'Well outside the gesture. Tells us whether the window is timing or trust.',
+    build: (pad) => {
+      const sw = makeSwitch();
+      const extra = makeSwitch(true);
+      pad.append(sw, extra);
+      sw.addEventListener('click', () => setTimeout(() => extra.click(), 400));
+    }
+  },
+  {
+    id: 8, name: 'Two switches, one tap',
+    note: 'Your finger toggles the top one, which forwards the click to a second, straight away. ' +
+          'A stronger single tick would mean two can be stacked.',
+    build: (pad) => {
+      const top = makeSwitch();
+      const under = makeSwitch(true);
+      pad.append(top, under);
+      top.addEventListener('click', () => under.click());
+    }
+  },
+  {
+    id: 9, name: 'Drag across a strip',
+    note: 'Press and slide your finger across the bar. Counting ticks tells us whether a swipe ' +
+          'could carry a long celebration.',
+    strip: true
+  },
+  {
+    id: 10, name: 'Spin the picker',
+    note: 'A native <select> wheel. Not a switch at all — iOS may tick on its own detents, ' +
+          'which would be free feedback on the language menu.',
+    select: true
+  }
+];
+
+function makeSwitch(hidden = false) {
+  const el = document.createElement('input');
+  el.type = 'checkbox';
+  el.setAttribute('switch', '');
+  el.setAttribute('aria-hidden', 'true');
+  el.tabIndex = -1;
+  if (hidden) el.style.display = 'none';
+  return el;
+}
+
+const felt = {};
+const host = document.getElementById('tests');
+
+for (const test of TESTS) {
+  const box = document.createElement('section');
+  box.className = 'test';
+  box.innerHTML = '<h2></h2><p></p>';
+  box.querySelector('h2').textContent = `${test.id}. ${test.name}`;
+  box.querySelector('p').textContent = test.note || '';
+
+  if (test.strip) {
+    const strip = document.createElement('div');
+    strip.className = 'strip';
+    for (let i = 0; i < 12; i++) {
+      const label = document.createElement('label');
+      label.append(makeSwitch());
+      strip.append(label);
+    }
+    box.append(strip);
+  } else if (test.select) {
+    const sel = document.createElement('select');
+    for (let i = 1; i <= 20; i++) {
+      const opt = document.createElement('option');
+      opt.textContent = `Option ${i}`;
+      sel.append(opt);
+    }
+    box.append(sel);
+  } else {
+    const pad = document.createElement('span');
+    pad.className = 'pad' + (test.plain ? ' pad--plain' : '');
+    const fire = document.createElement('button');
+    fire.type = 'button';
+    fire.className = 'fire';
+    fire.textContent = 'Fire';
+    pad.append(fire);
+    test.build(pad, fire);
+    box.append(pad);
+  }
+
+  const verdict = document.createElement('div');
+  verdict.className = 'verdict';
+  verdict.innerHTML = '<button class="yes" type="button">Felt it</button>' +
+                      '<button class="no" type="button">Nothing</button>';
+  verdict.querySelector('.yes').addEventListener('click', () => mark(box, test.id, 'yes'));
+  verdict.querySelector('.no').addEventListener('click', () => mark(box, test.id, 'no'));
+  box.append(verdict);
+  host.append(box);
+}
+
+function mark(box, id, answer) {
+  box.dataset.felt = answer;
+  felt[id] = answer;
+  render();
+}
+
+function render() {
+  const lines = TESTS.map((t) => `${String(t.id).padStart(2)}. ${(felt[t.id] ?? '—').padEnd(3)}  ${t.name}`);
+  document.getElementById('out').value =
+    `Sund haptics lab\n${navigator.userAgent}\nstandalone: ${matchMedia('(display-mode: standalone)').matches}\n` +
+    `vibrate: ${typeof navigator.vibrate}  switch: ${'switch' in document.createElement('input')}  ` +
+    `::thumb: ${CSS.supports('selector(::thumb)')}\n\n${lines.join('\n')}`;
+}
+
+document.getElementById('gate').innerHTML =
+  `Vibration API: <b>${typeof navigator.vibrate === 'function' ? 'present' : 'absent'}</b> · ` +
+  `switch control: <b>${'switch' in document.createElement('input') || CSS.supports('selector(::thumb)') ? 'yes' : 'no'}</b> · ` +
+  `home screen: <b>${matchMedia('(display-mode: standalone)').matches ? 'yes' : 'no'}</b>`;
+
+document.getElementById('copy').addEventListener('click', async () => {
+  const out = document.getElementById('out');
+  try {
+    await navigator.clipboard.writeText(out.value);
+    document.getElementById('copy').textContent = 'Copied';
+  } catch {
+    out.removeAttribute('readonly');
+    out.select();
+    document.getElementById('copy').textContent = 'Select it and copy by hand';
+  }
+});
+
+render();
+</script>
+</body>
+</html>

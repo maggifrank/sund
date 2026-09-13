@@ -679,11 +679,15 @@ h1 {
 
 /* Only ever built on a device with no Vibration API, so on Android and the
    desktop none of this is in the document at all. */
-.haptic-wrap {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-}
+.haptic-wrap { position: relative; }
+
+/* The wrapper inherits the job the button had in its parent's layout: hugging
+   it (a step button, the ⚙), stretching to share a flex row (export, reset),
+   or spanning the card (the history disclosure). Get this wrong and the button
+   inside collapses to the width of its own text. */
+.haptic-wrap--inline { display: inline-flex; flex: 0 0 auto; }
+.haptic-wrap--grow { display: flex; flex: 1; }
+.haptic-wrap--block { display: block; width: 100%; }
 
 /* A real native switch, invisible, exactly over the button — iOS plays its
    system tick when a finger toggles it. clip-path rather than overflow and a
@@ -697,7 +701,7 @@ h1 {
   height: 100%;
   margin: 0;
   opacity: 0;
-  clip-path: inset(0 round 50%);
+  clip-path: inset(0 round var(--haptic-radius, 50%));
   cursor: pointer;
 }
 

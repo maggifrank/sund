@@ -14,7 +14,7 @@ import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import { chartHTML, chartSignature, bindChartTooltip, monthKey } from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
-import { celebrateAdd, celebrateRemove, attachTapHaptics } from './lib/celebrate.js';
+import { celebrateAdd, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
 const TOKEN_KEY = 'sund.token';
@@ -487,6 +487,9 @@ function renderHistory(trips, state) {
   const rows = [...frag.children];
   ui.historyBody.replaceChildren();
   ui.historyBody.append(...reverseKeepingMonths(rows));
+  /* These rows are thrown away and rebuilt whenever anything changes, so the
+     overlays are re-attached with them rather than once at startup. */
+  attachTapHapticsAll(ui.historyBody.querySelectorAll('.row-del'), { radius: '8px' });
 }
 
 function reverseKeepingMonths(nodes) {
@@ -830,12 +833,23 @@ function askForToken() {
 ui.langSelect.value = lang;
 applyStaticStrings();
 bindChartTooltip(ui.chart);
-/* An iPhone has no Vibration API, so + and − borrow their tick from an
-   invisible native switch laid over each of them. A no-op everywhere the real
+/* An iPhone has no Vibration API, so every tappable control borrows its tick
+   from an invisible native switch laid over it. A no-op everywhere the real
    thing works, and the listeners above stay on the buttons themselves, which
-   are moved into a wrapper rather than replaced. */
-attachTapHaptics(ui.plus);
-attachTapHaptics(ui.minus);
+   are moved into a wrapper rather than replaced.
+
+   The radius is each control's own: the overlay clips its hit-testing to match,
+   so a tap on the corner outside a round button still misses it. */
+for (const [button, radius, fill] of [
+  [ui.plus, '50%'], [ui.minus, '50%'],
+  [ui.settingsToggle, '10px'], [ui.sync, '999px'], [ui.backdateAdd, '10px'],
+  /* These two share a row and stretch to halve it, and the disclosure spans
+     its whole card — so their wrappers have to do the same. */
+  [ui.exportBtn, '10px', 'grow'], [ui.resetBtn, '10px', 'grow'],
+  [ui.historyToggle, 'var(--radius)', 'block']
+]) {
+  attachTapHaptics(button, { radius, fill });
+}
 startWatching();
 loadCache();
 render();
