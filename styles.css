@@ -709,3 +709,22 @@ h1 {
    reaches the button and the press animation would be lost on exactly the
    devices this exists for. Drive it from the wrapper instead. */
 .haptic-wrap:has(.haptic-switch:active) .step { transform: scale(.93); }
+
+/* While the paper is in the air the whole screen is live: a tap throws another
+   handful from your fingertip, and on iOS toggles a real switch so it ticks.
+   Above the canvas, below the emoji, and gone the moment the last piece lands
+   — nothing here outlives a celebration. */
+.confetti-play {
+  position: fixed;
+  inset: 0;
+  z-index: 92;
+}
+
+.confetti-play-switch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+}

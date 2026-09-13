@@ -326,20 +326,46 @@ hugging it, stretching to share a row, or spanning a card. That is stated per
 control rather than guessed, because getting it wrong collapses the button
 inside to the width of its own text.
 
-The limits of that are worth stating, because they shape the code:
+The limits of that are worth stating, because they shape the code. They were
+measured on the device rather than guessed at — a throwaway page put thirteen
+variations side by side and asked how many ticks each produced:
 
-- **It is one fixed tick**, with no duration, intensity or pattern, so the
-  milestone and break-even rhythms stay Android-only. An iPhone feels the same
-  tap for the 50th swim as for any other.
-- **iOS 26.5 closed the script path**: a tick now needs a real finger on the
-  control, which is why this is an overlay rather than a call.
-- **The control has to keep its native rendering** to tick at all. Invisible
-  still counts as native; restyled does not.
+| | |
+|---|---|
+| A finger toggling a switch | **one tick** |
+| The same toggle from script — `.click()`, through a `<label>`, `checked = !checked`, from `touchstart`, inside the tap or 400ms after it | **nothing, in every form** |
+| A real tap followed by three script toggles | **still one tick** |
+| Two switches toggled by one tap | **one tick** |
+| A finger dragged across twelve switches | **one tick** — the gesture stays with the first |
+| Five switches tapped in turn | **five ticks** |
+| A picker wheel, date wheels, a slider | **nothing** |
+
+So: **one tick per genuine tap, and taps are the only thing that stacks.** No
+duration, no intensity, no rhythm. The milestone and break-even patterns stay
+Android-only — an iPhone cannot feel the difference between the 50th swim and
+any other. What it can have is *more taps worth making*, which is what the
+celebration below does.
+
+The control also has to keep its native rendering to tick at all. Invisible
+still counts as native; restyled does not.
 
 It is a side effect of a control rather than an API, and Apple has narrowed it
 once already, so it is gated on the exact thing it exploits: nothing is built on
 a device where `navigator.vibrate` works, and it disappears silently the day the
 gate stops matching — including the day Safari ships the real API.
+
+### Playing with the confetti
+
+While the paper is still in the air, the whole screen is live: every tap throws
+another handful from your fingertip. On Android it buzzes; on an iPhone it
+ticks, because the tap is a real finger on a real switch — which is the only
+way that moment can be felt more than once.
+
+The two platforms get there differently, and the difference is not cosmetic.
+Android listens passively and intercepts nothing, because `vibrate()` needs no
+control under the finger. iOS has to take the tap, so it also has to hand it on:
+the tap still reaches whatever was underneath, or a swim logged while the
+confetti was falling would be swallowed by the party.
 
 Under `prefers-reduced-motion` nothing flies: no confetti is drawn at all, and
 the emoji fades in place instead of floating. The buzz stays — it isn't motion
@@ -531,12 +557,15 @@ your count, and is a shared code rather than real per-user accounts.
 - **The public page can be up to six hours behind on exchange rates.** The count
   itself republishes within seconds of a swim; only the ECB rate waits for the
   safety-net timer, and the page always names the rate's date.
-- **iOS haptics are one borrowed tick.** Safari has no Vibration API, so + and −
-  carry an invisible native switch and let iOS play its system tap. There is no
-  duration, intensity or pattern in it, so the milestone and break-even rhythms
-  are Android-only — an iPhone cannot tell the 50th swim from any other by feel.
-  It also rests on a WebKit behaviour Apple has already narrowed once, in iOS
-  26.5, and could remove; when it goes, the iPhone is simply silent again.
+- **iOS haptics are one borrowed tick per tap.** Safari has no Vibration API,
+  so every control carries an invisible native switch and lets iOS play its
+  system tap. Measured on the device: script cannot produce a tick in any form,
+  a real tap produces exactly one however many toggles follow it, and only taps
+  stack. So the milestone and break-even rhythms are Android-only — an iPhone
+  cannot tell the 50th swim from any other by feel, and the best it can be given
+  is more taps worth making, which is what the playable confetti does. It also
+  rests on a WebKit behaviour Apple has already narrowed once, in iOS 26.5, and
+  could remove; when it goes, the iPhone is simply silent again.
 - **A pool can only be set from the History list.** There is no bulk edit, so
   attributing a long backlog is one tap per trip.
 - **Bulk import is a script, not a button.** `bin/import-trips.mjs` reads a
