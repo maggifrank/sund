@@ -14,6 +14,7 @@ import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import { chartHTML, chartSignature, bindChartTooltip, monthKey } from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
+import { celebrateAdd, celebrateRemove } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
 const TOKEN_KEY = 'sund.token';
@@ -182,6 +183,7 @@ const ui = {
   historyToggle: el('history-toggle'), historyPanel: el('history-panel'), historyBody: el('history-body'),
   historySummary: el('history-summary'),
   backdate: el('backdate'), backdateDate: el('backdate-date'), backdateError: el('backdate-error'),
+  backdateAdd: el('backdate-add'),
   settings: el('settings'), settingsToggle: el('settings-toggle'),
   inMembership: el('in-membership'), inCardPrice: el('in-card-price'), inCardTrips: el('in-card-trips'),
   inSeasonStart: el('in-season-start'), inSeasonEnd: el('in-season-end'),
@@ -608,6 +610,25 @@ function seasonLine(s) {
 
 /* ---------- actions ---------- */
 
+/* Every way of logging a swim goes through here, so the buzz, the emoji and
+   the confetti do not have to be remembered separately at each of them.
+
+   The two counts are taken either side of the enqueue, off the same optimistic
+   view the big number is drawn from: a swim outside the card's dates, or at a
+   pool the card does not cover, leaves them equal and quietly earns a thumb
+   rather than a milestone it did not reach. Both reads are synchronous —
+   flush() goes to the network but does not touch the queue before its first
+   await — so this is the number the screen is about to show. */
+function logTrip(op, anchor) {
+  const before = tripSplit(view()).counted;
+  enqueue(op);
+  const state = view();
+  celebrateAdd({
+    before, after: tripSplit(state).counted, settings: state.settings,
+    anchor, counter: ui.trips
+  });
+}
+
 ui.plus.addEventListener('click', () => {
   const op = { kind: 'add', at: new Date().toISOString() };
   const pool = poolHere();
@@ -621,10 +642,12 @@ ui.plus.addEventListener('click', () => {
       op.pool = { id: idFor(name, view().pools), name: name.trim(), lat: position.lat, lon: position.lon };
     }
   }
-  enqueue(op);
+  logTrip(op, ui.plus);
 });
 ui.minus.addEventListener('click', () => {
-  if (view().trips.length) enqueue({ kind: 'remove' });
+  if (!view().trips.length) return;
+  enqueue({ kind: 'remove' });
+  celebrateRemove({ anchor: ui.minus, counter: ui.trips });
 });
 
 document.addEventListener('keydown', (e) => {
@@ -668,7 +691,7 @@ ui.backdate.addEventListener('submit', (e) => {
 
   showBackdateError(null);
   ui.backdateDate.value = '';
-  enqueue({ kind: 'add', at: when.toISOString() });
+  logTrip({ kind: 'add', at: when.toISOString() }, ui.backdateAdd);
 });
 
 function showBackdateError(msg) {
@@ -678,7 +701,14 @@ function showBackdateError(msg) {
 
 ui.historyBody.addEventListener('click', (e) => {
   const del = e.target.closest('.row-del');
-  if (del) { enqueue({ kind: 'removeAt', at: del.dataset.at }); return; }
+  if (del) {
+    /* Measured before the enqueue: that call re-renders the list, and the ×
+       that was tapped is no longer in the document to be measured after it. */
+    const spot = del.getBoundingClientRect();
+    enqueue({ kind: 'removeAt', at: del.dataset.at });
+    celebrateRemove({ anchor: spot, counter: ui.trips });
+    return;
+  }
   const poolBtn = e.target.closest('.row-pool');
   if (poolBtn) openPoolPicker(poolBtn);
 });
