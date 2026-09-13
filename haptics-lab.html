@@ -6,11 +6,17 @@
 <meta name="theme-color" content="#0b3d5c">
 <title>Sund · haptics lab</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📳</text></svg>">
-<!-- A throwaway diagnostic, not part of the app. It answers one question the
-     web cannot answer from here: which ways of toggling WebKit's native switch
-     control still make an iPhone tick, now that iOS 26.5 has closed the script
-     path. Tap each test, say whether you felt it, and send the summary back.
-     Delete this file once the answer is known. -->
+<!-- A throwaway diagnostic, not part of the app. It answers one question that
+     cannot be answered from a Linux container: how many times an iPhone can be
+     made to tick from a single gesture, now that iOS 26.5 has closed the script
+     path. Delete this file once the answer is in.
+
+     Round two fixes what round one could not tell us apart. Every verdict is
+     now a count rather than a yes, because most of these tests begin with a
+     real tap that ticks on its own — "I felt something" cannot distinguish a
+     working pattern from that one tap. And the page says outright which device
+     it is running on, because a MacBook trackpad and an iPhone are different
+     machines answering a question only the iPhone's answer settles. -->
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -24,7 +30,16 @@
   }
   main { max-width: 480px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 0 0 4px; }
-  .lede { color: #8fb2c6; font-size: 14px; margin: 0 0 18px; }
+  .lede { color: #8fb2c6; font-size: 14px; margin: 0 0 14px; }
+
+  .device {
+    border-radius: 12px; padding: 12px; margin-bottom: 10px;
+    font-size: 14px; line-height: 1.45;
+  }
+  .device--ok { background: rgba(75, 211, 155, .14); border: 1px solid #4bd39b; }
+  .device--wrong { background: rgba(255, 138, 107, .14); border: 1px solid #ff8a6b; }
+  .device b { display: block; font-size: 15px; margin-bottom: 2px; }
+
   .gate {
     border: 1px solid #1b4257; border-radius: 12px; padding: 10px 12px;
     font-size: 13px; color: #8fb2c6; margin-bottom: 18px;
@@ -37,9 +52,8 @@
   }
   .test h2 { font-size: 15px; margin: 0 0 2px; }
   .test p { font-size: 13px; color: #8fb2c6; margin: 0 0 10px; }
+  .test .want { color: #f5c542; }
 
-  /* The thing under test is always a real native switch, invisible, over a
-     button — the same arrangement the app uses. */
   .pad { position: relative; display: block; width: 100%; }
   .fire {
     width: 100%; font: inherit; font-weight: 600; font-size: 15px;
@@ -52,41 +66,50 @@
   }
   .pad--plain input[switch] { display: none; }
 
-  .verdict { display: flex; gap: 8px; margin-top: 10px; }
+  .verdict { display: flex; gap: 6px; margin-top: 10px; }
   .verdict button {
-    flex: 1; font: inherit; font-size: 14px; padding: 9px;
+    flex: 1; font: inherit; font-size: 13px; padding: 9px 4px;
     border-radius: 9px; border: 1px solid #1b4257;
     background: transparent; color: #8fb2c6; cursor: pointer;
   }
-  .test[data-felt="yes"] { border-color: #4bd39b; }
-  .test[data-felt="yes"] .yes { background: #4bd39b; color: #03222f; border-color: #4bd39b; }
-  .test[data-felt="no"] .no { background: #ff8a6b; color: #03222f; border-color: #ff8a6b; }
+  .test[data-felt] { border-color: #35a8d6; }
+  .test[data-felt="none"] .v-none { background: #ff8a6b; color: #03222f; border-color: #ff8a6b; }
+  .test[data-felt="one"] .v-one { background: #8fb2c6; color: #03222f; border-color: #8fb2c6; }
+  .test[data-felt="many"] .v-many { background: #4bd39b; color: #03222f; border-color: #4bd39b; }
 
-  /* Test 9: a strip to drag a finger across. */
-  .strip { display: flex; gap: 2px; height: 56px; }
+  .strip { display: flex; gap: 2px; height: 60px; }
   .strip label { position: relative; flex: 1; background: #14374c; border-radius: 4px; }
   .strip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; }
 
-  select { font: inherit; width: 100%; padding: 12px; border-radius: 10px;
-           background: #14374c; color: #e6f3fa; border: 1px solid #1b4257; }
+  .row { display: flex; gap: 6px; }
+  .row label { position: relative; flex: 1; height: 54px; background: #14374c; border-radius: 8px; }
+  .row input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; }
+
+  select, input[type="date"], input[type="range"] {
+    font: inherit; width: 100%; padding: 12px; border-radius: 10px;
+    background: #14374c; color: #e6f3fa; border: 1px solid #1b4257;
+  }
+  input[type="range"] { padding: 0; height: 44px; }
 
   .out {
-    width: 100%; min-height: 120px; font: 13px/1.5 ui-monospace, Menlo, monospace;
+    width: 100%; min-height: 200px; font: 13px/1.5 ui-monospace, Menlo, monospace;
     background: #04141e; color: #8fb2c6; border: 1px solid #1b4257;
     border-radius: 12px; padding: 12px; margin-top: 8px;
   }
   .copy {
-    width: 100%; font: inherit; font-weight: 600; padding: 12px; margin-top: 8px;
+    width: 100%; font: inherit; font-weight: 600; padding: 14px; margin-top: 8px;
     border-radius: 10px; border: none; background: #f5c542; color: #241c00; cursor: pointer;
   }
 </style>
 </head>
 <body>
 <main>
-  <h1>Haptics lab 📳</h1>
-  <p class="lede">Tap each <b>Fire</b>, then say whether you felt anything. Test 1 is the
-     one already working in the app — if that one doesn't tick, something else is wrong.</p>
+  <h1>Haptics lab 📳 <span style="color:#8fb2c6;font-size:14px">round 2</span></h1>
+  <p class="lede">Answer with <b>how many</b> ticks you felt, not whether you felt one. Most of
+     these start with a real tap that ticks on its own, so “something” tells us nothing —
+     <b>one</b> means only that tap counted, <b>2+</b> means a pattern is possible.</p>
 
+  <div id="device"></div>
   <div class="gate" id="gate"></div>
 
   <div id="tests"></div>
@@ -98,39 +121,29 @@
 </main>
 
 <script>
-/* Each test builds its own controls and runs one attempt per tap. The switches
-   are real and native in every case; what varies is who toggles them. */
 const TESTS = [
   {
-    id: 1, name: 'Direct tap on a switch',
-    note: 'The baseline — your finger toggles it. This is what the app does now.',
+    id: 1, name: 'Direct tap on a switch', want: 'expect 1 — the baseline the app already uses',
     build: (pad) => { pad.append(makeSwitch()); }
   },
   {
-    id: 2, name: 'Script toggle, inside the tap',
-    note: 'Your finger hits a plain button; its click handler toggles a switch with .click().',
+    id: 2, name: 'Script toggle, inside the tap', want: 'expect 0 — nothing real is toggled',
+    note: 'Your finger hits a plain button; its handler toggles a hidden switch with .click().',
     plain: true,
-    build: (pad, fire) => {
-      const sw = makeSwitch(true);
-      pad.append(sw);
-      fire.addEventListener('click', () => sw.click());
-    }
+    build: (pad, fire) => { const sw = makeSwitch(true); pad.append(sw); fire.addEventListener('click', () => sw.click()); }
   },
   {
-    id: 3, name: 'Script toggle via a label, inside the tap',
-    note: 'The same, but the click goes through a <label> — the technique the old libraries used.',
+    id: 3, name: 'Script toggle via a label', want: 'expect 0 — the old libraries’ technique',
     plain: true,
     build: (pad, fire) => {
       const label = document.createElement('label');
-      const sw = makeSwitch(true);
-      label.append(sw);
+      label.append(makeSwitch(true));
       pad.append(label);
       fire.addEventListener('click', () => label.click());
     }
   },
   {
-    id: 4, name: 'checked = !checked, inside the tap',
-    note: 'Setting the property directly and firing a change event, rather than clicking.',
+    id: 4, name: 'checked = !checked', want: 'expect 0',
     plain: true,
     build: (pad, fire) => {
       const sw = makeSwitch(true);
@@ -142,60 +155,57 @@ const TESTS = [
     }
   },
   {
-    id: 5, name: 'Script toggle from touchstart',
-    note: 'Same as 2, but fired the instant your finger lands rather than when it lifts.',
+    id: 5, name: 'Script toggle from touchstart', want: 'expect 0',
     plain: true,
-    build: (pad, fire) => {
-      const sw = makeSwitch(true);
-      pad.append(sw);
-      fire.addEventListener('touchstart', () => sw.click(), { passive: true });
-    }
+    build: (pad, fire) => { const sw = makeSwitch(true); pad.append(sw); fire.addEventListener('touchstart', () => sw.click(), { passive: true }); }
   },
   {
-    id: 6, name: 'Real tap, then 3 script toggles',
-    note: 'THE IMPORTANT ONE. A real tap on a switch, then three more toggles 60ms apart. ' +
-          'If you feel four ticks, milestone patterns are possible. One tick means only the tap counts.',
+    id: 6, name: 'Real tap, then 3 script toggles 60ms apart',
+    want: 'THE ONE THAT MATTERS — 1 kills patterns, 4 makes them possible',
     build: (pad) => {
-      const sw = makeSwitch();
-      const extra = makeSwitch(true);
+      const sw = makeSwitch(), extra = makeSwitch(true);
       pad.append(sw, extra);
-      sw.addEventListener('click', () => {
-        for (const delay of [60, 120, 180]) setTimeout(() => extra.click(), delay);
-      });
+      sw.addEventListener('click', () => { for (const d of [60, 120, 180]) setTimeout(() => extra.click(), d); });
     }
   },
   {
-    id: 7, name: 'Real tap, then one toggle 400ms later',
-    note: 'Well outside the gesture. Tells us whether the window is timing or trust.',
+    id: 7, name: 'Real tap, then one toggle 400ms later', want: '1 or 2 — is the limit timing or trust?',
     build: (pad) => {
-      const sw = makeSwitch();
-      const extra = makeSwitch(true);
+      const sw = makeSwitch(), extra = makeSwitch(true);
       pad.append(sw, extra);
       sw.addEventListener('click', () => setTimeout(() => extra.click(), 400));
     }
   },
   {
-    id: 8, name: 'Two switches, one tap',
-    note: 'Your finger toggles the top one, which forwards the click to a second, straight away. ' +
-          'A stronger single tick would mean two can be stacked.',
+    id: 8, name: 'Two switches, one tap', want: '2 would mean ticks can be stacked for a stronger one',
     build: (pad) => {
-      const top = makeSwitch();
-      const under = makeSwitch(true);
+      const top = makeSwitch(), under = makeSwitch(true);
       pad.append(top, under);
       top.addEventListener('click', () => under.click());
     }
   },
   {
-    id: 9, name: 'Drag across a strip',
-    note: 'Press and slide your finger across the bar. Counting ticks tells us whether a swipe ' +
-          'could carry a long celebration.',
+    id: 9, name: 'Drag slowly across the strip', want: 'one per segment would carry a long roll',
+    note: 'Press at one end and slide right, slowly, across all twelve.',
     strip: true
   },
   {
-    id: 10, name: 'Spin the picker',
-    note: 'A native <select> wheel. Not a switch at all — iOS may tick on its own detents, ' +
-          'which would be free feedback on the language menu.',
+    id: 10, name: 'Tap these five, one after another', want: 'expect 5 — proves taps stack up',
+    note: 'Five separate switches. If each ticks, an interactive celebration is on the table.',
+    row: true
+  },
+  {
+    id: 11, name: 'Spin the picker wheel', want: 'detent ticks would be free on the language menu',
+    note: 'A native select. On an iPhone this opens a wheel; on a Mac it is only a menu, which is why round one’s answer did not count.',
     select: true
+  },
+  {
+    id: 12, name: 'Spin the date wheels', want: 'same question, a different native wheel',
+    date: true
+  },
+  {
+    id: 13, name: 'Drag the slider end to end', want: 'any tick here would be a free progress haptic',
+    range: true
   }
 ];
 
@@ -217,17 +227,22 @@ for (const test of TESTS) {
   box.className = 'test';
   box.innerHTML = '<h2></h2><p></p>';
   box.querySelector('h2').textContent = `${test.id}. ${test.name}`;
-  box.querySelector('p').textContent = test.note || '';
+  const p = box.querySelector('p');
+  if (test.note) p.append(test.note + ' ');
+  const want = document.createElement('span');
+  want.className = 'want';
+  want.textContent = `(${test.want})`;
+  p.append(want);
 
-  if (test.strip) {
-    const strip = document.createElement('div');
-    strip.className = 'strip';
-    for (let i = 0; i < 12; i++) {
+  if (test.strip || test.row) {
+    const holder = document.createElement('div');
+    holder.className = test.strip ? 'strip' : 'row';
+    for (let i = 0; i < (test.strip ? 12 : 5); i++) {
       const label = document.createElement('label');
       label.append(makeSwitch());
-      strip.append(label);
+      holder.append(label);
     }
-    box.append(strip);
+    box.append(holder);
   } else if (test.select) {
     const sel = document.createElement('select');
     for (let i = 1; i <= 20; i++) {
@@ -236,6 +251,14 @@ for (const test of TESTS) {
       sel.append(opt);
     }
     box.append(sel);
+  } else if (test.date) {
+    const d = document.createElement('input');
+    d.type = 'date';
+    box.append(d);
+  } else if (test.range) {
+    const r = document.createElement('input');
+    r.type = 'range';
+    box.append(r);
   } else {
     const pad = document.createElement('span');
     pad.className = 'pad' + (test.plain ? ' pad--plain' : '');
@@ -250,32 +273,51 @@ for (const test of TESTS) {
 
   const verdict = document.createElement('div');
   verdict.className = 'verdict';
-  verdict.innerHTML = '<button class="yes" type="button">Felt it</button>' +
-                      '<button class="no" type="button">Nothing</button>';
-  verdict.querySelector('.yes').addEventListener('click', () => mark(box, test.id, 'yes'));
-  verdict.querySelector('.no').addEventListener('click', () => mark(box, test.id, 'no'));
+  for (const [key, label] of [['none', 'nothing'], ['one', 'one tick'], ['many', '2 or more']]) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `v-${key}`;
+    b.textContent = label;
+    b.addEventListener('click', () => { box.dataset.felt = key; felt[test.id] = key; render(); });
+    verdict.append(b);
+  }
   box.append(verdict);
   host.append(box);
 }
 
-function mark(box, id, answer) {
-  box.dataset.felt = answer;
-  felt[id] = answer;
-  render();
+/* An iPhone is the only device whose answer settles this. An iPad has no
+   haptic engine at all, and a MacBook answers for its trackpad, which is a
+   different machine under a nearly identical user-agent string. */
+function whichDevice() {
+  const ua = navigator.userAgent;
+  if (/iPhone/.test(ua)) return { kind: 'iPhone', ok: true };
+  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return { kind: 'iPad', ok: false };
+  if (/Macintosh/.test(ua)) return { kind: 'Mac', ok: false };
+  return { kind: 'something else', ok: false };
 }
 
-function render() {
-  const lines = TESTS.map((t) => `${String(t.id).padStart(2)}. ${(felt[t.id] ?? '—').padEnd(3)}  ${t.name}`);
-  document.getElementById('out').value =
-    `Sund haptics lab\n${navigator.userAgent}\nstandalone: ${matchMedia('(display-mode: standalone)').matches}\n` +
-    `vibrate: ${typeof navigator.vibrate}  switch: ${'switch' in document.createElement('input')}  ` +
-    `::thumb: ${CSS.supports('selector(::thumb)')}\n\n${lines.join('\n')}`;
-}
+const dev = whichDevice();
+const banner = document.getElementById('device');
+banner.className = `device device--${dev.ok ? 'ok' : 'wrong'}`;
+banner.innerHTML = dev.ok
+  ? '<b>iPhone ✓</b>This is the device the answer has to come from.'
+  : `<b>This is a ${dev.kind}, not an iPhone ⚠</b>Its answers will not transfer — a Mac is reporting its ` +
+    'trackpad, and an iPad has no haptic engine at all. Open this page on the iPhone instead.';
 
 document.getElementById('gate').innerHTML =
   `Vibration API: <b>${typeof navigator.vibrate === 'function' ? 'present' : 'absent'}</b> · ` +
-  `switch control: <b>${'switch' in document.createElement('input') || CSS.supports('selector(::thumb)') ? 'yes' : 'no'}</b> · ` +
+  `switch control: <b>${'switch' in document.createElement('input') ? 'yes' : 'no'}</b> · ` +
   `home screen: <b>${matchMedia('(display-mode: standalone)').matches ? 'yes' : 'no'}</b>`;
+
+function render() {
+  const mark = { none: '0 ', one: '1 ', many: '2+' };
+  const lines = TESTS.map((t) => `${String(t.id).padStart(2)}. ${mark[felt[t.id]] ?? '– '}  ${t.name}`);
+  document.getElementById('out').value =
+    `Sund haptics lab · round 2\ndevice: ${dev.kind}${dev.ok ? '' : '  << NOT AN IPHONE'}\n${navigator.userAgent}\n` +
+    `standalone: ${matchMedia('(display-mode: standalone)').matches}  ` +
+    `vibrate: ${typeof navigator.vibrate}  switch: ${'switch' in document.createElement('input')}\n\n` +
+    `${lines.join('\n')}\n\n(0 = nothing, 1 = one tick, 2+ = more than one)`;
+}
 
 document.getElementById('copy').addEventListener('click', async () => {
   const out = document.getElementById('out');
