@@ -14,7 +14,7 @@ import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import { chartHTML, chartSignature, bindChartTooltip, monthKey } from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
-import { celebrateAdd, celebrateRemove } from './lib/celebrate.js';
+import { celebrateAdd, celebrateRemove, attachTapHaptics } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
 const TOKEN_KEY = 'sund.token';
@@ -830,6 +830,12 @@ function askForToken() {
 ui.langSelect.value = lang;
 applyStaticStrings();
 bindChartTooltip(ui.chart);
+/* An iPhone has no Vibration API, so + and − borrow their tick from an
+   invisible native switch laid over each of them. A no-op everywhere the real
+   thing works, and the listeners above stay on the buttons themselves, which
+   are moved into a wrapper rather than replaced. */
+attachTapHaptics(ui.plus);
+attachTapHaptics(ui.minus);
 startWatching();
 loadCache();
 render();

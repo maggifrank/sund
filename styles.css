@@ -674,3 +674,34 @@ h1 {
   }
   .count.is-bumped-up, .count.is-bumped-down { animation: none; }
 }
+
+/* ---- iOS: the switch that ticks (see lib/celebrate.js) ---- */
+
+/* Only ever built on a device with no Vibration API, so on Android and the
+   desktop none of this is in the document at all. */
+.haptic-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+/* A real native switch, invisible, exactly over the button — iOS plays its
+   system tick when a finger toggles it. clip-path rather than overflow and a
+   radius: it has to clip hit-testing as well as paint, or the corners outside
+   a round button would still catch the tap. The control keeps its native
+   rendering, which is a condition of the tick; opacity is not. */
+.haptic-switch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  clip-path: inset(0 round 50%);
+  cursor: pointer;
+}
+
+/* The finger lands on the switch rather than the button, so :active never
+   reaches the button and the press animation would be lost on exactly the
+   devices this exists for. Drive it from the wrapper instead. */
+.haptic-wrap:has(.haptic-switch:active) .step { transform: scale(.93); }

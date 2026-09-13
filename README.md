@@ -311,9 +311,28 @@ Some rules it follows, none of which are visible when they work:
   button, milestones included — the confetti comes out of the *Add* button in
   the history panel rather than the counter, which is where you were looking.
 
-The buzz is the [Vibration API](https://developer.mozilla.org/docs/Web/API/Navigator/vibrate),
-which Android has and iOS Safari does not, so on an iPhone this is a silent
-feature. Nothing else depends on it landing.
+On Android the buzz is the [Vibration API](https://developer.mozilla.org/docs/Web/API/Navigator/vibrate).
+Safari has never implemented it, so an iPhone borrows a tick instead: **+** and
+**−** each carry an invisible native switch control (`<input type="checkbox"
+switch>`, Safari 17.4) laid exactly over the button, and iOS plays its system
+tap when a finger toggles one. The button still does the work — the tap is
+forwarded to it — and the press animation is driven from the wrapper, because
+`:active` now lands on the switch rather than the button.
+
+The limits of that are worth stating, because they shape the code:
+
+- **It is one fixed tick**, with no duration, intensity or pattern, so the
+  milestone and break-even rhythms stay Android-only. An iPhone feels the same
+  tap for the 50th swim as for any other.
+- **iOS 26.5 closed the script path**: a tick now needs a real finger on the
+  control, which is why this is an overlay rather than a call.
+- **The control has to keep its native rendering** to tick at all. Invisible
+  still counts as native; restyled does not.
+
+It is a side effect of a control rather than an API, and Apple has narrowed it
+once already, so it is gated on the exact thing it exploits: nothing is built on
+a device where `navigator.vibrate` works, and it disappears silently the day the
+gate stops matching — including the day Safari ships the real API.
 
 Under `prefers-reduced-motion` nothing flies: no confetti is drawn at all, and
 the emoji fades in place instead of floating. The buzz stays — it isn't motion
@@ -505,9 +524,12 @@ your count, and is a shared code rather than real per-user accounts.
 - **The public page can be up to six hours behind on exchange rates.** The count
   itself republishes within seconds of a swim; only the ECB rate waits for the
   safety-net timer, and the page always names the rate's date.
-- **No haptics on iOS.** The buzz on + and − is the Vibration API, which Safari
-  does not implement on any iPhone. The confetti and the emoji are all an iPhone
-  gets, and there is no way to feel a milestone in a coat pocket there.
+- **iOS haptics are one borrowed tick.** Safari has no Vibration API, so + and −
+  carry an invisible native switch and let iOS play its system tap. There is no
+  duration, intensity or pattern in it, so the milestone and break-even rhythms
+  are Android-only — an iPhone cannot tell the 50th swim from any other by feel.
+  It also rests on a WebKit behaviour Apple has already narrowed once, in iOS
+  26.5, and could remove; when it goes, the iPhone is simply silent again.
 - **A pool can only be set from the History list.** There is no bulk edit, so
   attributing a long backlog is one tap per trip.
 - **Bulk import is a script, not a button.** `bin/import-trips.mjs` reads a
