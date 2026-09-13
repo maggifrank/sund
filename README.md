@@ -279,6 +279,49 @@ reads as the previous day on any device west of UTC; midday leaves twelve hours
 of slack either way. Since a backdated entry has no real clock time, the history
 shows it as a date alone — only live taps display a time.
 
+## Milestones, confetti and the buzz
+
+Logging a swim should feel like something, so it does.
+
+Every **+** gets a short buzz and a random cheerful emoji that floats up off the
+button; every removal gets two shorter, more apologetic ones and an emoji that
+agrees it was a mistake. The big number jumps a little either way. None of it is
+load-bearing: the emoji and the canvas are `aria-hidden`, because the counter is
+already an `aria-live` output that announces the new number.
+
+**Confetti** marks the swims worth marking — the 1st, 10th, 25th and 50th, and
+then every 50th after that — and **break-even fills the screen**: cannons from
+both bottom corners, a burst over the counter, and paper falling from the top
+for a couple of seconds. That is the number the whole app is about, so it gets
+the whole screen.
+
+Some rules it follows, none of which are visible when they work:
+
+- **Only trips that move the counted number can be a milestone.** A swim
+  [outside the card's dates](#the-cards-dates) or [at a pool it doesn't
+  cover](#pools) gets the buzz and the emoji, but it hasn't reached anything,
+  so there is no confetti for it.
+- **Only your own taps celebrate.** A swim arriving from another device lands in
+  the count quietly; confetti is a response to a tap, not to a poll.
+- **A crossing is celebrated once.** The highest number already celebrated is
+  remembered per card in `localStorage`, so tapping − and + again doesn't fire a
+  second party for the same 50th swim. Change the card's dates or its prices and
+  it is a different card, whose count starts over.
+- **Backdating counts.** Logging a past swim goes through the same path as the
+  button, milestones included — the confetti comes out of the *Add* button in
+  the history panel rather than the counter, which is where you were looking.
+
+The buzz is the [Vibration API](https://developer.mozilla.org/docs/Web/API/Navigator/vibrate),
+which Android has and iOS Safari does not, so on an iPhone this is a silent
+feature. Nothing else depends on it landing.
+
+Under `prefers-reduced-motion` nothing flies: no confetti is drawn at all, and
+the emoji fades in place instead of floating. The buzz stays — it isn't motion
+on a screen — and so does the emoji itself.
+
+It all lives in `lib/celebrate.js`, which is the only file that would have to be
+deleted to remove the lot.
+
 ## The saved data
 
 State is one JSON file. Every shape this app has ever written still loads:
@@ -462,6 +505,9 @@ your count, and is a shared code rather than real per-user accounts.
 - **The public page can be up to six hours behind on exchange rates.** The count
   itself republishes within seconds of a swim; only the ECB rate waits for the
   safety-net timer, and the page always names the rate's date.
+- **No haptics on iOS.** The buzz on + and − is the Vibration API, which Safari
+  does not implement on any iPhone. The confetti and the emoji are all an iPhone
+  gets, and there is no way to feel a milestone in a coat pocket there.
 - **A pool can only be set from the History list.** There is no bulk edit, so
   attributing a long backlog is one tap per trip.
 - **Bulk import is a script, not a button.** `bin/import-trips.mjs` reads a
@@ -493,6 +539,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/money.js` | currency per language, conversion and formatting |
 | `lib/chart.js` | the trips-per-month chart, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
+| `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
 | `lib/rates.js` | ECB rate fetching and cache freshness |
 | `serve.js` | LXC backend — static files + API, file-backed, no dependencies |
 | `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
