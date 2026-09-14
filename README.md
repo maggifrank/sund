@@ -280,12 +280,13 @@ did not cover, split by which of the two rules left them out, but as **plain
 counts** — no dates. An older snapshot without those counts simply hides the
 line.
 
-The public snapshot also contains **only the trips that count toward the card** —
-inside its dates, at one of its pools.
-That page is about what the membership costs per swim, so publishing the for-fun
-ones would make its arithmetic disagree with the app — and stripping the pool
-while keeping the trip would leave no way to tell them apart. Its monthly chart
-therefore shows card swims only, where the app's shows everything.
+The public snapshot contains **every trip**, plus plain counts saying how many of
+them the card covers. It used to contain the card's own and nothing else, which
+quietly cut its monthly chart short the day the card grew dates; the money there
+now reads the published count rather than the length of the list. The pool on
+each trip is still stripped, so a for-fun swim is published as a date like any
+other, and the table above stays the only thing that says where the swimming
+happened.
 
 ## History
 
