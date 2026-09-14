@@ -98,6 +98,36 @@ required lightness band against the dark card surface.
 
 The history panel below is the chart's table view — same data, every trip listed.
 
+## Trips per weekday
+
+Which day do you actually swim on? A pie below the monthly chart, one wedge per
+weekday, **Monday first** — `getDay()` numbers from Sunday, but that is the Date
+object's convention rather than anything an Icelandic, Polish or British reader
+expects.
+
+The card leads with the answer in words — *Most popular day: Thursday, 24 trips ·
+30%* — and the pie is the evidence underneath it. **Every day tied for the most
+is named**, not the first one found: with a few dozen trips a tie is ordinary,
+and picking a winner out of one would present a coin toss as a fact.
+
+Seven wedges are more than a pie should carry, and the question it answers is
+which day stands out rather than which wedge is which, so the colour is
+**emphasis, not identity**: the busiest day takes the chart mark and every other
+day the same recessive tint of it. Seven hues would have failed on colour
+blindness long before it failed on taste. Both steps were checked with the same
+palette validator the monthly chart's mark was, as a one-hue ramp against the
+card surface in each mode.
+
+Identity is carried by everything except the colour, so it is never colour
+alone: the legend beside the pie lists all seven days and their counts in the
+wedges' own clockwise order, and any wedge with room for it is labelled in
+place. **There is no hover tooltip** — unlike the monthly chart, where the bars
+carry no labels, everything here is already on screen, which is also what a
+phone with no pointer needs. The wedges keep a `<title>` for the pointer that
+expects one and for screen readers.
+
+A day nobody has swum on keeps its legend row at zero. That is an answer too.
+
 ## The card's dates
 
 A membership runs for a year, and the app used to have no idea when that year
@@ -595,7 +625,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/api.js` | HTTP routing and validation, shared by both backends |
 | `lib/i18n.js` | Icelandic, English and Polish strings, plurals, dates, number formats |
 | `lib/money.js` | currency per language, conversion and formatting |
-| `lib/chart.js` | the trips-per-month chart, shared by both pages |
+| `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
 | `lib/rates.js` | ECB rate fetching and cache freshness |

@@ -8,7 +8,9 @@ import {
 } from './lib/state.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, ordinal, formatDate } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
-import { chartHTML, chartSignature, bindChartTooltip, monthKey } from './lib/chart.js';
+import {
+  chartHTML, chartSignature, weekdayHTML, weekdaySignature, bindChartTooltip, monthKey
+} from './lib/chart.js';
 import { renderPoolTable } from './lib/pooltable.js';
 
 const LANG_KEY = 'sund.lang';
@@ -24,7 +26,8 @@ const ui = {
   progressFill: el('progress-fill'), breakevenLine: el('breakeven-line'), breakevenNote: el('breakeven-note'),
   cardPerTrip: el('card-per-trip'), cardPerTripSub: el('card-per-trip-sub'),
   delta: el('delta'), deltaSub: el('delta-sub'),
-  langSelect: el('lang-select'), chart: el('chart'), rateNote: el('rate-note'), offCard: el('off-card'),
+  langSelect: el('lang-select'), chart: el('chart'), weekday: el('weekday'),
+  rateNote: el('rate-note'), offCard: el('off-card'),
   season: el('season'),
   pools: el('pools'), poolTable: el('pool-table'),
   historyToggle: el('history-toggle'), historyBody: el('history-body'), historySummary: el('history-summary')
@@ -49,6 +52,7 @@ function setLang(next) {
   ui.langSelect.value = lang;
   applyStaticStrings();
   chartSig = null;
+  weekdaySig = null;
   historySig = null;
   render();
 }
@@ -72,6 +76,15 @@ function renderChart(trips) {
   if (sig === chartSig) return;
   chartSig = sig;
   ui.chart.innerHTML = chartHTML(lang, trips);
+}
+
+let weekdaySig = null;
+
+function renderWeekday(trips) {
+  const sig = weekdaySignature(lang, trips);
+  if (sig === weekdaySig) return;
+  weekdaySig = sig;
+  ui.weekday.innerHTML = weekdayHTML(lang, trips);
 }
 
 let historySig = null;
@@ -239,6 +252,7 @@ function render() {
   renderRateNote();
   renderPools(snapshot.poolTable);
   renderChart(trips);
+  renderWeekday(trips);
   renderHistory(trips);
 }
 

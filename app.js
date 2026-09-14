@@ -11,7 +11,9 @@ import {
   LANGS, LANG_NAMES, DEFAULT_LANG, detectLang, t, plural, ordinal, formatDate, formatTime
 } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
-import { chartHTML, chartSignature, bindChartTooltip, monthKey } from './lib/chart.js';
+import {
+  chartHTML, chartSignature, weekdayHTML, weekdaySignature, bindChartTooltip, monthKey
+} from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
 import { celebrateAdd, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
@@ -179,7 +181,7 @@ const ui = {
   sync: el('sync'), syncText: el('sync-text'), langSelect: el('lang-select'),
   rateNote: el('rate-note'), here: el('here'), poolTable: el('pool-table'), offCard: el('off-card'),
   season: el('season'),
-  chart: el('chart'),
+  chart: el('chart'), weekday: el('weekday'),
   historyToggle: el('history-toggle'), historyPanel: el('history-panel'), historyBody: el('history-body'),
   historySummary: el('history-summary'),
   backdate: el('backdate'), backdateDate: el('backdate-date'), backdateError: el('backdate-error'),
@@ -221,6 +223,7 @@ function setLang(next) {
   applyStaticStrings();
   historySig = null;        // month names and plurals changed; force a rebuild
   chartSig = null;
+  weekdaySig = null;
   render();
 }
 
@@ -401,6 +404,15 @@ function renderChart(trips) {
   ui.chart.innerHTML = chartHTML(lang, trips);
 }
 
+let weekdaySig = null;
+
+function renderWeekday(trips) {
+  const sig = weekdaySignature(lang, trips);
+  if (sig === weekdaySig) return;
+  weekdaySig = sig;
+  ui.weekday.innerHTML = weekdayHTML(lang, trips);
+}
+
 /* ---------- history ---------- */
 
 /* Backdated trips are anchored at local midday, so an exact midday reading
@@ -579,6 +591,7 @@ function render() {
   renderHere();
   renderPools(state);
   renderChart(state.trips);
+  renderWeekday(state.trips);
   renderHistory(state.trips, state);
 
   if (document.activeElement !== ui.inMembership) ui.inMembership.value = s.membership;
