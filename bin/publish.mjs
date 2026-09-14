@@ -17,7 +17,7 @@
  *   SUND_TOKEN         access code, if the source instance requires one
  */
 
-import { normalize, cardTrips, tripSplit, poolCounts } from '../lib/state.js';
+import { normalize, tripSplit, poolCounts } from '../lib/state.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -61,9 +61,24 @@ async function get(pathname) {
  * sit in state.json for anyone who opened it directly.
  *
  * Anchoring at local midday keeps the date and the count while dropping the
- * time, and matches the convention backdated trips already use. */
+ * time, and matches the convention backdated trips already use.
+ *
+ * Every swim, not just the ones on the card. This used to publish cardTrips()
+ * alone, which was invisible until the card grew dates: from then on the public
+ * chart began at the season start and the months before it simply vanished,
+ * while the app beside it still drew the lot. The page is meant to be the same
+ * picture with the controls taken away, and "it shows in the chart, the history
+ * and the pool table, but never in the money" is the rule the app states for an
+ * off-card swim — so the money here reads `totals.counted` and the drawings get
+ * the whole history.
+ *
+ * That publishes the dates of swims the card does not cover. It is the same
+ * disclosure the card's own swims already make, and the page already publishes
+ * `totals.all` and a pool table counted over everything, so how much swimming
+ * there was outside the card was never the secret — only when. The hour and the
+ * pool, which are what actually locate someone, stay dropped. */
 function publicTrips(state) {
-  return cardTrips(normalize(state)).map((trip) => {
+  return normalize(state).trips.map((trip) => {
     const d = new Date(typeof trip === 'string' ? trip : trip.at);
     return { at: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0).toISOString() };
   }).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
@@ -71,17 +86,17 @@ function publicTrips(state) {
 
 /* The pool table, totalled here rather than on the page.
  *
- * The page has no trips to count from — its trips are card-only and carry no
- * pool — so the finished rows are what gets published: a name, a count and
- * whether the card covers it. That is deliberately the whole of it. Sending the
- * pool list instead would ship every pool's coordinates, and leaving the pool
- * on each trip would say which pool on which day; a total says where the
- * swimming happened without dating any of it.
+ * The page has no pool to count by — its trips carry a date and nothing else —
+ * so the finished rows are what gets published: a name, a count and whether the
+ * card covers it. That is deliberately the whole of it. Sending the pool list
+ * instead would ship every pool's coordinates, and leaving the pool on each trip
+ * would say which pool on which day; a total says where the swimming happened
+ * without dating any of it.
  *
- * Counted over the full state, so the table covers the off-card swims the
- * published trips leave out and its total agrees with `totals.all`. The `card`
- * flag on each row comes from poolCounts(), so it follows whichever pools the
- * card is set to cover rather than the built-in list. */
+ * Counted over the full state, which is now also what the trips cover, so the
+ * table's total and `totals.all` and the history's length are three views of one
+ * number. The `card` flag on each row comes from poolCounts(), so it follows
+ * whichever pools the card is set to cover rather than the built-in list. */
 function poolTable(state) {
   return poolCounts(normalize(state)).map(({ name, count, card }) => ({ name, count, card }));
 }
@@ -146,12 +161,14 @@ async function build(state, rates) {
   await fs.rm(DIST, { recursive: true, force: true });
   await fs.mkdir(path.join(DIST, 'lib'), { recursive: true });
   for (const [from, to] of COPY) await fs.copyFile(path.join(ROOT, from), path.join(DIST, to));
-  /* Plain counts, so the public page can say how much swimming there was
-     without publishing the trips the card does not cover — split by which of
-     the two rules left each one out, and dated by none of it. */
+  /* Plain counts, so the page can say how much of the swimming the card
+     actually covers — split by which of the two rules left each trip out. */
   const full = normalize(state);
-  const { total, offCard, outsideSeason } = tripSplit(full);
-  const totals = { all: total, offCard, outsideSeason };
+  /* `counted` is new and load-bearing: the published trips are now the whole
+     history, so trips.length is no longer the card's count and the page has
+     nothing else to work the money out from. */
+  const { total, counted, offCard, outsideSeason } = tripSplit(full);
+  const totals = { all: total, counted, offCard, outsideSeason };
 
   /* `cardPools` is dropped even though poolTable() publishes a name and a card
      flag for every pool in the history, which is most of what the id list would

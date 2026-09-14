@@ -4,7 +4,8 @@
    lib/ modules the private app uses, so the two cannot disagree. */
 
 import {
-  normalize, costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, tripAt, dateFromKey
+  normalize, costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, tripAt, dateFromKey,
+  tripInSeason
 } from './lib/state.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, ordinal, formatDate } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
@@ -89,7 +90,7 @@ function renderWeekday(trips) {
 
 let historySig = null;
 
-function renderHistory(trips) {
+function renderHistory(trips, settings) {
   ui.historySummary.textContent = trips.length
     ? t(lang, 'history.summary', {
         trips: plural(lang, trips.length, 'trip'),
@@ -119,7 +120,15 @@ function renderHistory(trips) {
     }
     /* Dates only. The snapshot has no real times in it either — see
        stripTimes() in bin/publish.mjs — but never render one regardless. */
-    rows[rows.length - 1].items.push({ n: i + 1, date: formatDate(lang, d, 'day') });
+    /* Tagged, not hidden or dimmed: the swim happened, it is just not this
+       card's. The app marks its rows the same way, and without it the list
+       would run to every swim while the counter above it showed far fewer,
+       with nothing on the page to reconcile the two. */
+    rows[rows.length - 1].items.push({
+      n: i + 1,
+      date: formatDate(lang, d, 'day'),
+      outside: !tripInSeason(trip, settings)
+    });
   });
 
   const frag = document.createDocumentFragment();
@@ -133,9 +142,13 @@ function renderHistory(trips) {
     for (const item of group.items.reverse()) {
       const row = document.createElement('div');
       row.className = 'trip-row trip-row--readonly';
-      row.innerHTML = '<span class="n"></span><span class="when"><span class="date"></span></span>';
+      row.innerHTML = '<span class="n"></span><span class="when"><span class="line">' +
+                      '<span class="date"></span><span class="row-tag" hidden></span></span></span>';
       row.querySelector('.n').textContent = `#${item.n}`;
       row.querySelector('.date').textContent = item.date;
+      const tag = row.querySelector('.row-tag');
+      tag.hidden = !item.outside;
+      tag.textContent = item.outside ? t(lang, 'season.tag') : '';
       frag.append(row);
     }
   }
@@ -175,7 +188,12 @@ function render() {
   const s = snapshot.settings;
   if (!s) return;
   const trips = snapshot.trips;
-  const n = trips.length;
+  /* Every figure below the counter is about the card, and the snapshot now
+     carries the whole history, so the count comes from the published totals
+     rather than from the length of the list. The fallback is not decoration: a
+     snapshot published before `counted` existed holds card trips only, and for
+     that one trips.length is exactly the right answer. */
+  const n = snapshot.totals?.counted ?? trips.length;
   const be = breakEvenTrips(s);
   const cashBe = cashBreakEvenTrips(s);
   const perCardTrip = cardPerTrip(s);
@@ -211,8 +229,11 @@ function render() {
   ui.season.hidden = season === null;
   ui.season.textContent = season ?? '';
 
-  ui.lastSwim.textContent = n
-    ? t(lang, 'counter.lastSwim', { date: formatDate(lang, tripAt(trips[n - 1]), 'full') })
+  /* The most recent swim of any kind, which is what the app shows too — reading
+     trips[n - 1] would now point at whichever trip happens to sit at the card's
+     count, and name the wrong day. */
+  ui.lastSwim.textContent = trips.length
+    ? t(lang, 'counter.lastSwim', { date: formatDate(lang, tripAt(trips[trips.length - 1]), 'full') })
     : t(lang, 'counter.none');
 
   const cpt = costPerTrip(s, n);
@@ -253,7 +274,7 @@ function render() {
   renderPools(snapshot.poolTable);
   renderChart(trips);
   renderWeekday(trips);
-  renderHistory(trips);
+  renderHistory(trips, s);
 }
 
 /* ---------- start ---------- */
