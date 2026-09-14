@@ -499,6 +499,23 @@ It is read-only **by construction, not by hiding buttons**: the deploy is static
 files plus a `state.json` snapshot, with no API and no function behind it. There
 is nothing to authenticate because there is nothing to write to.
 
+The page shows **every swim, and counts only the card's**. The big number, the
+cost per trip and the break-even are the card's swims — `totals.counted`, worked
+out at publish time, because the snapshot's own list is no longer the answer —
+while the chart, the weekday pie and the history draw the whole history. That is
+the same rule the app states for an off-card swim: it shows in the chart, the
+history and the pool table, but never in the money. The history marks the ones
+the card does not cover with the same pill the app uses, so the list and the
+counter above it always reconcile.
+
+It did not used to. The snapshot published `cardTrips()` alone, which nothing
+noticed until the card grew dates: from that day the public chart began at the
+season start and every month before it vanished, while the app beside it still
+drew the lot. Publishing the dates of off-card swims is the same disclosure the
+card's own swims already make — the count was public in `totals.all` and in a
+pool table counted over everything, so how much swimming there was outside the
+card was never the secret, only when.
+
 The history shows **dates without times**. The times are stripped from the
 snapshot itself, not merely hidden in the page — otherwise they would still sit
 in `state.json` for anyone who opened it directly. Every published trip is
