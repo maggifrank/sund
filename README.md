@@ -7,9 +7,10 @@ The count is **shared across devices** — log a swim on your phone at the pool,
 see it on your laptop at home.
 
 It runs in two places behind **one address**, <https://sund.talva.is>. Inside
-the LAN that name resolves to the container and you get the full read/write app.
-From outside it resolves to Netlify and you get a read-only snapshot, with no
-API behind it to write to. Same URL, two faces, decided by DNS.
+the LAN that name resolves to Caddy, which passes it to the container, and you
+get the full read/write app over HTTPS like anywhere else. From outside it
+resolves to Cloudflare and on to Netlify, and you get a read-only snapshot with
+no API behind it to write to. Same URL, two faces, decided by DNS.
 
 ## What it works out
 
