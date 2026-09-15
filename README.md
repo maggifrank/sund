@@ -260,12 +260,17 @@ not cover and the counter drops. Trips recorded before this existed, or with loc
 switched off, simply have no pool — the count is unaffected.
 
 **The public site gets the table, but only as totals.** `bin/publish.mjs`
-publishes the finished rows — a name, a count and whether the card covers it —
-and still drops the pool from every trip, publishes an empty pool list, and
+publishes the finished rows — an id, a name, a count and whether the card covers
+it — and still drops the pool from every trip, publishes an empty pool list, and
 drops the time, the same way it always did. So the page can say where the
 swimming happens without saying *when* any of it happened: there is no pool
-attached to a date anywhere in `state.json`, and no coordinates, because the
-pool list with the positions in it is not published at all.
+attached to a date anywhere in `state.json`, and the saved pool list — the one
+holding a position for anywhere named on the spot — goes out empty.
+
+The id is what lets [the map](#on-the-public-site) put a row on the country. It
+is a slug of the name published beside it, and the only positions it can resolve
+to are the built-in survey in `lib/pools.js`, which the public build has always
+shipped as code.
 
 Totals rather than a count the page works out for itself, because it cannot:
 its own trips are card-only and carry no pool. The table is counted over the
@@ -287,6 +292,98 @@ now reads the published count rather than the length of the list. The pool on
 each trip is still stripped, so a for-fun swim is published as a date like any
 other, and the table above stays the only thing that says where the swimming
 happened.
+
+## The map
+
+**Kort** — the 🗺 in the header — is the pool list as a picture: every pool the
+app knows about, drawn where it actually is, **filled green where you have swum
+and a hollow red ring where you have not**. The headline is the bare fraction,
+`23 / 131`, with a progress bar under it.
+
+Two maps rather than one. A quarter of the pools that can be placed at all sit
+inside twenty kilometres of Reykjavík, and the three the card covers are within
+two and a half of each other — so at the scale that fits Iceland into a phone
+column they are one smudge, and the card's own pools are a single dot. The
+country map is therefore followed by a second pass over the **capital area**,
+40 km across, and the country map carries a dashed rectangle saying which piece
+that is. Both are drawn by one function from the same rows; only the window
+differs. The markers are the same size on both — the zoomed map scales the
+coastline underneath rather than the marks on top of it — so a pool is the same
+size to the eye and the same size to a finger wherever it turns up.
+
+**Colour is never the only thing saying it.** Green and red are precisely the
+pair a red-green reader cannot separate. Measured in OKLab under simulated
+deuteranopia, against the land each map is drawn on rather than the card behind
+it, this pair comes out 9.0 apart in light mode and 8.1 in dark — above the
+target, but not by a margin worth resting a page on. So visited is a *filled*
+disc and not-yet is a *hollow* ring: the shape says it without the colour and
+the colour says it without the shape. The legend names both, a hover or a tap
+gives the pool and its count in words, and the list at the bottom says it a
+third time. Both pairs were stepped with the same palette validator the charts
+were, and clear every check it makes.
+
+**The map is not the whole list, and says so.** 81 of the 131 pools have
+coordinates; the other 50 are names from the directory that OpenStreetMap does
+not place — see the header of `lib/pools.js`. Those cannot be drawn at all, so
+the counter card states how many are missing and the **Ófarnar laugar** list at
+the bottom carries them with a *not on the map* tag. The fraction counts every
+pool either way: a page that quietly drew 81 of 131 would be claiming a
+completeness it has not got.
+
+The page is read-only and has nothing of its own to save. It draws the counter
+page's offline cache for the first paint — queue included, through the same
+`applyQueue()` the counter uses, so a swim logged at a new pool with no signal
+colours that pool here too — and then polls `/api/state` like any other view of
+the shared count. It never writes the cache back: the queue in there belongs to
+the page that owns the **+** button.
+
+### On the public site
+
+The public site has the same map, at `/map.html`, drawn by the same
+`lib/poolmap.js` — so the two cannot disagree about what has been swum in. What
+differs is where the answer comes from. That page has no pool on any trip;
+`bin/publish.mjs` strips it, and always has, so it cannot count visits per pool
+for itself. It is handed the **totals** instead: the pool table that was already
+published, which now carries an `id` beside each name.
+
+That id is the one field nothing on either page displays. It is there so a row
+can be matched to a position, and it is safe to publish because it says nothing
+the name beside it does not — it is a slug of that name, the name is already on
+the page, and every coordinate it resolves to sits in `lib/pools.js`, which the
+public build has always shipped. Matching on the name instead would have cost
+nothing and been wrong: the app lets a pool be renamed, and a renamed pool would
+quietly fall off the map rather than move.
+
+So the public map says **where** the swimming happens without saying **when** any
+of it happened, which is the line the pool table already walks. No date is
+attached to any pool anywhere in `state.json`, the saved pool list is still
+published empty, and a pool nobody has been to was never a secret — the survey
+in `lib/pools.js` is a directory of Iceland's swimming pools, not a diary.
+
+A snapshot published before the rows carried an id cannot say which pools those
+swims were at. The page says so in a sentence and draws nothing, rather than
+putting a red ring on all 131 and claiming the swimming never happened.
+
+### How the country is drawn
+
+The coastline is **committed, not fetched**. The app has no build step and no
+dependencies, and a map that needed the network to draw the country would be
+useless in the one place this app is actually opened. It comes from **Natural
+Earth 1:10m** (public domain), Douglas–Peucker simplified to about 2,100 points,
+and `bin/build-coastline.mjs` regenerates it — so the committed path can be
+re-derived rather than trusted. Run it and diff it. Iceland arrives as five
+polygons, the mainland and four islands; three of those have a pool on them, so
+none are dropped for being small.
+
+It is projected on **Iceland's own national grid** — ISN93 / Lambert 1993,
+EPSG:3057: a conformal conic on GRS80 with standard parallels at 64°15′ and
+65°45′. It is the projection every Icelandic map is printed in, and conformal
+means the Westfjords come out the shape of the Westfjords; a plain
+latitude/longitude plot would stretch the island sideways by a factor of two and
+a bit at these latitudes, and the north would be visibly wider than the south.
+The generator projects the coastline through the very same function that places
+the markers, and refuses to write an outline that no longer fits the page — so
+the country and the pools on it cannot drift apart.
 
 ## History
 
@@ -486,8 +583,8 @@ rollback if the new revision won't start. See [DEPLOY.md](DEPLOY.md).
 ## The public read-only site
 
 <https://sund.talva.is> from outside the LAN — a snapshot of the count, the
-cost per trip, break-even, the chart and the pool table, with no way to change
-anything. Its direct Netlify address is <https://sund-swim.netlify.app>.
+cost per trip, break-even, the chart, the pool table and the map, with no way to
+change anything. Its direct Netlify address is <https://sund-swim.netlify.app>.
 
 The same hostname serves the private app inside the LAN, through split-horizon
 DNS: internally it resolves to Caddy and on to the container, externally to
@@ -530,6 +627,11 @@ The **pool table** is stripped the same way, in the other direction: the counts
 are published, the trips they were counted from are not. A row says the pool and
 how many visits it has had, and nothing in the snapshot can put one of those
 visits on a day. See [Pools](#pools).
+
+The **map** is a second page, `/map.html`, reached from the same 🗺 in the
+header. It is those same rows drawn on the country rather than listed, and it
+adds nothing to the snapshot but an `id` per row — see
+[On the public site](#on-the-public-site).
 
 The container republishes within seconds of a swim — see
 [DEPLOY.md](DEPLOY.md#publishing-the-public-read-only-site). To publish by hand
@@ -614,6 +716,12 @@ your count, and is a shared code rather than real per-user accounts.
   is more taps worth making, which is what the playable confetti does. It also
   rests on a WebKit behaviour Apple has already narrowed once, in iOS 26.5, and
   could remove; when it goes, the iPhone is simply silent again.
+- **The capital map is zoomed past its own coastline.** Natural Earth's 1:10m
+  outline carries about a kilometre of detail, which is invisible at the scale of
+  the country and plain to see on the 40 km capital map: straight edges, blunt
+  headlands, Álftanes as a wedge. The markers are exact either way — it is the
+  shoreline under them that is approximate — and there is no finer public-domain
+  outline to swap in.
 - **A pool can only be set from the History list.** There is no bulk edit, so
   attributing a long backlog is one tap per trip.
 - **Bulk import is a script, not a button.** `bin/import-trips.mjs` reads a
@@ -638,18 +746,23 @@ your count, and is a shared code rather than real per-user accounts.
 | | |
 |---|---|
 | `index.html` `styles.css` `app.js` | the private read/write app |
-| `public/` | the public read-only page |
+| `map.html` `map.js` | the map page — the private app only |
+| `public/` | the public read-only pages — the counter and the map |
 | `lib/state.js` | trips, settings and the break-even arithmetic |
 | `lib/api.js` | HTTP routing and validation, shared by both backends |
 | `lib/i18n.js` | Icelandic, English and Polish strings, plurals, dates, number formats |
 | `lib/money.js` | currency per language, conversion and formatting |
 | `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
+| `lib/poolmap.js` | the two pool maps and the marks on them |
+| `lib/iceland.js` | the ISN93 / Lambert projection and the map page's geometry |
+| `lib/coastline.js` | the coastline path — generated, do not edit |
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
 | `lib/rates.js` | ECB rate fetching and cache freshness |
 | `serve.js` | LXC backend — static files + API, file-backed, no dependencies |
 | `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
 | `bin/publish.mjs` | snapshot, build and deploy the public site |
+| `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from Natural Earth |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |
 | `deploy/sund-publish.*` | publish the public snapshot every 15 min |

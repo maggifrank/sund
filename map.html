@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="is">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8f4fa" media="(prefers-color-scheme: light)">
+<title>Sund</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏊</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="app">
+
+  <header class="head">
+    <a id="back" class="icon-btn" href="./" data-i18n-title="nav.back" data-i18n-aria="nav.back">←</a>
+    <h1 data-i18n="map.label"></h1>
+    <div class="head-right">
+      <select id="lang-select" class="lang-select" data-i18n-aria="a11y.langSwitch"></select>
+    </div>
+  </header>
+
+  <section class="counter" aria-labelledby="visited-label">
+    <div id="visited-label" class="label" data-i18n="map.visited"></div>
+    <div class="count-row count-row--readonly">
+      <output id="visited" class="count count--fraction">—</output>
+    </div>
+    <div class="progress" role="img">
+      <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+    </div>
+    <p id="off-map" class="note" hidden></p>
+  </section>
+
+  <section class="card map-card" aria-labelledby="country-label">
+    <div id="country-label" class="label" data-i18n="map.country"></div>
+    <div id="country" class="map"></div>
+    <ul class="map-legend">
+      <li><span class="map-key is-done" aria-hidden="true"></span><span data-i18n="map.legendDone"></span></li>
+      <li><span class="map-key is-todo" aria-hidden="true"></span><span data-i18n="map.legendTodo"></span></li>
+    </ul>
+  </section>
+
+  <section class="card map-card" aria-labelledby="capital-label">
+    <div id="capital-label" class="label" data-i18n="map.capital"></div>
+    <div id="capital" class="map"></div>
+    <ul class="map-legend">
+      <li><span class="map-key is-done" aria-hidden="true"></span><span data-i18n="map.legendDone"></span></li>
+      <li><span class="map-key is-todo" aria-hidden="true"></span><span data-i18n="map.legendTodo"></span></li>
+    </ul>
+  </section>
+
+  <section class="card history">
+    <button id="todo-toggle" class="disclosure" aria-expanded="false" aria-controls="todo-panel">
+      <span class="label" data-i18n="map.todoLabel"></span>
+      <span id="todo-summary" class="sub"></span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div id="todo-panel" hidden></div>
+  </section>
+
+</main>
+<script type="module" src="map.js"></script>
+</body>
+</html>

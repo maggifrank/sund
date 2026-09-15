@@ -21,6 +21,20 @@
   --chart-mark-dim: #7ab8cf;
   --chart-grid: #e6eef4;
   --chart-surface: #ffffff;
+  /* The map page. Land is the surface the markers are measured against, so it
+     is the value fed to the palette validator, not the card behind it. The two
+     marker colours are the pair the page was asked for — green for been there,
+     red for not yet — stepped until they clear every check the charts do: both
+     inside the lightness band, both above the chroma floor, both over 3:1 on
+     the land, and 9.0 apart in OKLab under simulated deuteranopia, which is as
+     far as green and red can be pushed from each other. That is above the
+     target and still close enough to the floor that neither map leaves the
+     answer to colour alone; see the note in lib/poolmap.js. */
+  --map-sea: #dbe9f2;
+  --map-land: #ffffff;
+  --map-coast: #a7c4d6;
+  --map-done: #148d61;
+  --map-todo: #ab331c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,6 +53,13 @@
     --chart-mark-dim: #206888;
     --chart-grid: #17384c;
     --chart-surface: #0e2a3c;
+    /* Chosen against the dark land rather than flipped from the light pair,
+       which measured far too light for the band. ΔE 8.1 under deuteranopia. */
+    --map-sea: #0a2233;
+    --map-land: #1a3c52;
+    --map-coast: #35617e;
+    --map-done: #199e6e;
+    --map-todo: #e05c42;
   }
 }
 
@@ -61,10 +82,15 @@ body {
   gap: 14px;
 }
 
+/* Wraps rather than squeezes: the controls on the right are a sync pill whose
+   width is whatever the status sentence happens to be, and on the narrowest
+   phones they would otherwise push the title off the line. */
 .head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 h1 {
@@ -84,6 +110,14 @@ h1 {
   cursor: pointer;
 }
 .icon-btn:hover { color: var(--ink); }
+/* The map page's back arrow is a link, not a button: it needs the centring a
+   button gets for free, and none of the underline. */
+a.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 
 .card, .counter, .hero, .stat {
   background: var(--bg-2);
@@ -692,6 +726,95 @@ h1 {
   font-weight: 600;
 }
 .pool-row--total .pool-name { color: var(--ink-dim); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ---- map ---- */
+
+/* A ratio, not a score: two numbers and a slash want rather less room than the
+   trip counter's single one, which is the only number on its card. */
+.count--fraction { font-size: 44px; }
+
+.map-card { padding-bottom: 12px; }
+
+.map { position: relative; margin-top: 10px; }
+
+.map-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.map-sea { fill: var(--map-sea); }
+.map-land { fill: var(--map-land); stroke: var(--map-coast); }
+
+/* Where the second map is looking, drawn on the first. Dashed and in the dim
+   ink rather than in either marker colour: it is an annotation about the page,
+   not a third thing that pools can be. */
+.map-locator {
+  fill: none;
+  stroke: var(--ink-dim);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  opacity: .65;
+}
+
+/* Filled for visited, hollow for not yet — the shape carries the answer on its
+   own, which is what lets a green/red pair be used at all. Both wear the land
+   colour where they meet the map: an outer ring on the filled ones, the fill
+   itself on the hollow ones, so two pools a few hundred metres apart stay two
+   pools rather than merging into a blob. */
+.map-mark.is-done { fill: var(--map-done); stroke: var(--map-land); stroke-width: 2; }
+.map-mark.is-todo { fill: var(--map-land); stroke: var(--map-todo); stroke-width: 2.4; }
+
+.map-hit { fill: transparent; }
+
+.map-tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--bg-2);
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  transform: translate(-50%, -125%);
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.map-tip[data-show="1"] { opacity: 1; }
+.map-tip[data-below="1"] { transform: translate(-50%, 40%); }
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.map-legend li { display: flex; align-items: center; gap: 7px; }
+
+/* The same two marks as on the map, at the size a line of text can hold them —
+   in the legend, and again beside every name in the list below it. */
+.map-key {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+}
+.map-key.is-done { background: var(--map-done); }
+.map-key.is-todo { border: 2.5px solid var(--map-todo); }
+
+#todo-panel {
+  max-height: 55vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding: 4px 16px 8px;
+}
+
+.map-todo-row { grid-template-columns: auto 1fr auto; }
 
 /* ---- the swag: confetti, emoji and the counter's jump ---- */
 

@@ -44,6 +44,9 @@ function applyStaticStrings() {
   for (const node of document.querySelectorAll('[data-i18n-aria]')) {
     node.setAttribute('aria-label', t(lang, node.dataset.i18nAria));
   }
+  for (const node of document.querySelectorAll('[data-i18n-title]')) {
+    node.setAttribute('title', t(lang, node.dataset.i18nTitle));
+  }
 }
 
 function setLang(next) {
