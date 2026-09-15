@@ -84,35 +84,50 @@ function publicTrips(state) {
   }).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
 }
 
-/* The pool table, totalled here rather than on the page.
+/* The pool table, totalled here rather than on the page. It feeds the public
+ * map as well as the public table.
  *
  * The page has no pool to count by — its trips carry a date and nothing else —
- * so the finished rows are what gets published: a name, a count and whether the
- * card covers it. That is deliberately the whole of it. Sending the pool list
- * instead would ship every pool's coordinates, and leaving the pool on each trip
- * would say which pool on which day; a total says where the swimming happened
- * without dating any of it.
+ * so the finished rows are what gets published: an id, a name, a count and
+ * whether the card covers it. That is deliberately the whole of it. Sending the
+ * pool list instead would ship every pool's coordinates, and leaving the pool on
+ * each trip would say which pool on which day; a total says where the swimming
+ * happened without dating any of it.
+ *
+ * The id is the one field nothing on the page displays. It is here so the map
+ * can match a row to a position, and it is safe to publish because it says
+ * nothing the name beside it does not: it is a slug of that name, both are
+ * already on the page, and every coordinate it resolves to is in lib/pools.js,
+ * which this build has always shipped. Matching on the name instead would break
+ * the moment a pool was renamed — the app supports renaming one, and the
+ * renamed pool would silently fall off the map rather than move.
  *
  * Counted over the full state, which is now also what the trips cover, so the
  * table's total and `totals.all` and the history's length are three views of one
  * number. The `card` flag on each row comes from poolCounts(), so it follows
  * whichever pools the card is set to cover rather than the built-in list. */
 function poolTable(state) {
-  return poolCounts(normalize(state)).map(({ name, count, card }) => ({ name, count, card }));
+  return poolCounts(normalize(state)).map(({ id, name, count, card }) => ({ id, name, count, card }));
 }
 
-/* Only the files the read-only page needs. lib/api.js, lib/rates.js, serve.js
-   and netlify/ are server-side and are deliberately absent. */
+/* Only the files the read-only pages need. lib/api.js, lib/rates.js, serve.js
+   and netlify/ are server-side and are deliberately absent, and so is
+   lib/celebrate.js: there is nothing to celebrate on a page with no + button. */
 const COPY = [
   ['styles.css', 'styles.css'],
   ['public/index.html', 'index.html'],
   ['public/app.js', 'app.js'],
+  ['public/map.html', 'map.html'],
+  ['public/map.js', 'map.js'],
   ['lib/state.js', 'lib/state.js'],
   ['lib/i18n.js', 'lib/i18n.js'],
   ['lib/money.js', 'lib/money.js'],
   ['lib/chart.js', 'lib/chart.js'],
   ['lib/pools.js', 'lib/pools.js'],
-  ['lib/pooltable.js', 'lib/pooltable.js']
+  ['lib/pooltable.js', 'lib/pooltable.js'],
+  ['lib/poolmap.js', 'lib/poolmap.js'],
+  ['lib/iceland.js', 'lib/iceland.js'],
+  ['lib/coastline.js', 'lib/coastline.js']
 ];
 
 /* The list above is maintained by hand, and a module that grows a new import is

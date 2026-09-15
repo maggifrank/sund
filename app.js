@@ -3,9 +3,9 @@
    still works with a phone in a pool changing room on one bar of signal. */
 
 import {
-  emptyState, normalize, addTrip, removeLastTrip, removeTripAt, clearTrips, updateSettings,
+  emptyState, normalize, applyQueue,
   costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, poolCounts, tripAt, tripSplit,
-  setTripPool, poolIsOnCard, tripInSeason, dateKey, dateFromKey, cardPoolIds
+  poolIsOnCard, tripInSeason, dateKey, dateFromKey, cardPoolIds
 } from './lib/state.js';
 import {
   LANGS, LANG_NAMES, DEFAULT_LANG, detectLang, t, plural, ordinal, formatDate, formatTime
@@ -69,16 +69,7 @@ const saveCache = () =>
 
 /* ---------- optimistic view ---------- */
 
-const OPS = {
-  add: (s, op) => addTrip(s, op.at, op.pool),
-  remove: (s) => removeLastTrip(s),
-  removeAt: (s, op) => removeTripAt(s, op.at),
-  setPool: (s, op) => setTripPool(s, op.at, op.pool),
-  clear: (s) => clearTrips(s),
-  settings: (s, op) => updateSettings(s, op.patch)
-};
-
-const view = () => queue.reduce((s, op) => OPS[op.kind](s, op), confirmed);
+const view = () => applyQueue(confirmed, queue);
 
 /* ---------- network ---------- */
 
@@ -178,7 +169,7 @@ const ui = {
   progressFill: el('progress-fill'), breakevenLine: el('breakeven-line'), breakevenNote: el('breakeven-note'),
   cardPerTrip: el('card-per-trip'), cardPerTripSub: el('card-per-trip-sub'),
   delta: el('delta'), deltaSub: el('delta-sub'),
-  sync: el('sync'), syncText: el('sync-text'), langSelect: el('lang-select'),
+  sync: el('sync'), syncText: el('sync-text'), langSelect: el('lang-select'), mapLink: el('map-link'),
   rateNote: el('rate-note'), here: el('here'), poolTable: el('pool-table'), offCard: el('off-card'),
   season: el('season'),
   chart: el('chart'), weekday: el('weekday'),
@@ -855,7 +846,7 @@ bindChartTooltip(ui.chart);
    so a tap on the corner outside a round button still misses it. */
 for (const [button, radius, fill] of [
   [ui.plus, '50%'], [ui.minus, '50%'],
-  [ui.settingsToggle, '10px'], [ui.sync, '999px'], [ui.backdateAdd, '10px'],
+  [ui.settingsToggle, '10px'], [ui.mapLink, '10px'], [ui.sync, '999px'], [ui.backdateAdd, '10px'],
   /* These two share a row and stretch to halve it, and the disclosure spans
      its whole card — so their wrappers have to do the same. */
   [ui.exportBtn, '10px', 'grow'], [ui.resetBtn, '10px', 'grow'],
