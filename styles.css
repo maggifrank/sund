@@ -9,6 +9,9 @@
   --good: #0f8a5f;
   --bad: #b4442e;
   --shadow: 0 1px 2px rgba(11, 42, 61, .06), 0 8px 24px rgba(11, 42, 61, .07);
+  /* Behind the settings sheet. Dark in both themes — it is the page being
+     pushed back, not a surface of its own. */
+  --scrim: rgba(11, 42, 61, .4);
   --radius: 16px;
   /* Chart mark is its own token, not --accent: it has to sit inside the
      validator's lightness band against the card surface, which the UI accent
@@ -49,6 +52,7 @@
     --good: #4bd39b;
     --bad: #ff8a6b;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .35);
+    --scrim: rgba(0, 0, 0, .6);
     --chart-mark: #2f9ac7;
     --chart-mark-dim: #206888;
     --chart-grid: #17384c;
@@ -227,6 +231,155 @@ a.icon-btn {
 .stat-value.is-good { color: var(--good); }
 .stat-value.is-bad { color: var(--bad); }
 
+/* ---- the settings sheet ---- */
+
+/* Settings used to be the last card on the page: to change a price you
+   scrolled past the whole dashboard, and to see what the change did you
+   scrolled back up again. It comes up over the page now instead.
+
+   A modal <dialog> already carries the awkward half of that — the top layer,
+   so nothing here competes with the confetti for a z-index; the page behind
+   inert; focus kept inside; Escape. What is left is the shape and the way it
+   moves. */
+.sheet {
+  /* The browser centres a modal dialog. This one hangs off the bottom edge,
+     where the thumb that opened it already is. */
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 512px;          /* the app's column, plus the sheet's own gutters */
+  max-height: 92dvh;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  overflow: visible;
+}
+
+/* Faded in rather than switched on, so the page dims as the sheet rises. */
+.sheet::backdrop {
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.sheet.is-open::backdrop { opacity: 1; }
+
+.sheet-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 92dvh;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: 0 -10px 40px rgba(11, 42, 61, .18);
+  /* It waits below the edge and .is-open slides it up, so opening and closing
+     are one transition run in either direction — and a finger can interrupt
+     either by writing the transform inline. */
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.32, .72, 0, 1);
+}
+.sheet.is-open .sheet-panel { transform: translateY(0); }
+/* A finger has hold of it: the transform is whatever the last move wrote. */
+.sheet.is-dragging .sheet-panel { transition: none; }
+
+/* What you push back down — the bar and the title row together, so the gesture
+   starts well clear of the list scrolling below it. touch-action says the
+   vertical drag belongs to us; without it the first centimetre is swallowed by
+   a page scroll that cannot happen anyway. */
+.sheet-grip {
+  flex: 0 0 auto;
+  touch-action: none;
+  cursor: grab;
+  /* Without this a push downwards sweeps the title into a selection on the way
+     — the drag reads as a text drag until it is told otherwise. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sheet-grip:active { cursor: grabbing; }
+
+.sheet-grabber {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 2px;
+}
+.sheet-grabber::before {
+  content: '';
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  /* --line disappears against the panel it is drawn on; this is the one part
+     of the sheet that has to advertise what it is for. */
+  background: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 16px 10px;
+}
+.sheet-head h2 { margin: 0; }
+
+/* Everything under the grip scrolls, so a hundred pools and a soft keyboard
+   cannot push the handle off the top of the screen. */
+.sheet-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+/* 40vh of pools and everything else no longer fits once the whole panel stops
+   at 92% of the screen. */
+.sheet .pool-picker {
+  max-height: 30dvh;
+  overscroll-behavior: contain;
+}
+
+/* Room to spare — a laptop — and it stops hanging off the bottom edge to
+   become an ordinary dialog in the middle of the screen. The grab bar goes
+   with it: there is nothing to push down with a mouse, and ✕, a click outside
+   and Escape are all still there. */
+@media (min-width: 600px) and (min-height: 640px) {
+  /* [open] and not the bare class: an author rule beats the browser's
+     dialog:not([open]) { display: none } whatever its specificity, and a
+     settings panel permanently across the page is a poor start. */
+  .sheet[open] {
+    display: flex;
+    align-items: center;
+  }
+  .sheet {
+    inset: 0;
+    /* The browser's own dialog rule is height: fit-content, which inset alone
+       does not beat — without this the box hugs the panel, pins itself to the
+       top and "centred" lands halfway up the screen. */
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    padding: 24px 16px;
+  }
+  .sheet-panel {
+    width: 100%;
+    max-width: 512px;
+    margin: 0 auto;
+    max-height: min(80dvh, 700px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 64px rgba(11, 42, 61, .3);
+    transform: translateY(18px);
+    opacity: 0;
+    transition: transform .22s ease, opacity .22s ease;
+  }
+  .sheet.is-open .sheet-panel { transform: none; opacity: 1; }
+  .sheet-grabber { display: none; }
+  .sheet-head { padding-top: 14px; }
+  .sheet .pool-picker { max-height: 34dvh; }
+}
+
 .settings { display: flex; flex-direction: column; gap: 12px; }
 
 .settings label {
@@ -284,7 +437,11 @@ a.icon-btn {
   background: var(--bg);
 }
 
-.pool-pick {
+/* label.pool-pick and not .pool-pick alone: every row is a <label> inside the
+   settings panel, so `.settings label` above matches it too — and being a class
+   plus an element it outweighed a lone class and stacked the checkbox on top of
+   the name. The element here squares the specificity and the later rule wins. */
+label.pool-pick {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;

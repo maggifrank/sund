@@ -100,44 +100,59 @@
     </div>
   </section>
 
-  <section id="settings" class="card settings" hidden>
-    <div class="label" data-i18n="settings.label"></div>
-    <label><span data-i18n="settings.membership"></span>
-      <input id="in-membership" type="number" min="0" step="100" inputmode="numeric">
-    </label>
-    <div class="settings-pair">
-      <label><span data-i18n="settings.seasonStart"></span>
-        <input id="in-season-start" type="date">
-      </label>
-      <label><span data-i18n="settings.seasonEnd"></span>
-        <input id="in-season-end" type="date">
-      </label>
-    </div>
-    <p id="season-warning" class="settings-warning" hidden></p>
-
-    <div class="settings-pools">
-      <div class="settings-pools-head">
-        <span data-i18n="settings.cardPools"></span>
-        <span id="card-pools-count" class="settings-pools-count"></span>
+  <!-- A sheet rather than the last card on the page: it comes up over the
+       dashboard and goes away again by being pushed back down, tapped outside
+       or dismissed with Escape. <dialog> gives all three for nothing. -->
+  <dialog id="settings" class="sheet" aria-labelledby="settings-title">
+    <div id="settings-panel" class="sheet-panel">
+      <div id="settings-grip" class="sheet-grip">
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="settings-title" class="label" data-i18n="settings.label"></h2>
+          <button id="settings-close" class="icon-btn" type="button"
+                  data-i18n-title="settings.close" data-i18n-aria="settings.close">✕</button>
+        </div>
       </div>
-      <input id="pool-filter" type="search" autocomplete="off"
-             data-i18n-placeholder="settings.poolFilter"
-             data-i18n-aria="settings.poolFilter">
-      <div id="card-pool-list" class="pool-picker"></div>
-      <p id="pool-no-match" class="settings-warning" hidden></p>
+
+      <div class="sheet-body settings">
+        <label><span data-i18n="settings.membership"></span>
+          <input id="in-membership" type="number" min="0" step="100" inputmode="numeric">
+        </label>
+        <div class="settings-pair">
+          <label><span data-i18n="settings.seasonStart"></span>
+            <input id="in-season-start" type="date">
+          </label>
+          <label><span data-i18n="settings.seasonEnd"></span>
+            <input id="in-season-end" type="date">
+          </label>
+        </div>
+        <p id="season-warning" class="settings-warning" hidden></p>
+
+        <div class="settings-pools">
+          <div class="settings-pools-head">
+            <span data-i18n="settings.cardPools"></span>
+            <span id="card-pools-count" class="settings-pools-count"></span>
+          </div>
+          <input id="pool-filter" type="search" autocomplete="off"
+                 data-i18n-placeholder="settings.poolFilter"
+                 data-i18n-aria="settings.poolFilter">
+          <div id="card-pool-list" class="pool-picker"></div>
+          <p id="pool-no-match" class="settings-warning" hidden></p>
+        </div>
+        <label><span data-i18n="settings.cardPrice"></span>
+          <input id="in-card-price" type="number" min="0" step="100" inputmode="numeric">
+        </label>
+        <label><span data-i18n="settings.cardTrips"></span>
+          <input id="in-card-trips" type="number" min="1" step="1" inputmode="numeric">
+        </label>
+        <div class="settings-actions">
+          <button id="export" class="ghost-btn" type="button" data-i18n="settings.export"></button>
+          <button id="reset" class="danger-btn" type="button" data-i18n="settings.reset"></button>
+        </div>
+        <p class="note" data-i18n="settings.note"></p>
+      </div>
     </div>
-    <label><span data-i18n="settings.cardPrice"></span>
-      <input id="in-card-price" type="number" min="0" step="100" inputmode="numeric">
-    </label>
-    <label><span data-i18n="settings.cardTrips"></span>
-      <input id="in-card-trips" type="number" min="1" step="1" inputmode="numeric">
-    </label>
-    <div class="settings-actions">
-      <button id="export" class="ghost-btn" type="button" data-i18n="settings.export"></button>
-      <button id="reset" class="danger-btn" type="button" data-i18n="settings.reset"></button>
-    </div>
-    <p class="note" data-i18n="settings.note"></p>
-  </section>
+  </dialog>
 
   <p id="rate-note" class="rate-note" hidden></p>
 
