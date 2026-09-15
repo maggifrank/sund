@@ -171,7 +171,7 @@ sprang back to its old value with nothing saved and no reason given. The one
 edit the feature exists to support was the one it refused.
 
 So an inverted range is now stored like any other and **said out loud** — the
-settings panel shows *the end date is before the start date, so no trip counts*
+settings sheet shows *the end date is before the start date, so no trip counts*
 — rather than being silently undone. Set the start, then the end, and the
 warning clears on the second edit.
 
@@ -408,6 +408,44 @@ reads as the previous day on any device west of UTC; midday leaves twelve hours
 of slack either way. Since a backdated entry has no real clock time, the history
 shows it as a date alone — only live taps display a time.
 
+## Settings
+
+⚙ opens a **sheet over the page**, not a panel at the end of it. It used to be
+the last card in the column: to change a price you scrolled past the whole
+dashboard, and to see what the change did you scrolled back up again. Both
+numbers are now on screen at once — change the membership price, push the sheet
+down, read the new cost per trip.
+
+It is a modal `<dialog>`, which carries the awkward half of that for free: the
+top layer, so nothing competes with the confetti over a `z-index`; the page
+behind inert; focus kept inside; Escape already wired. There are four ways out
+— the ✕, a tap outside, Escape, and pushing it back down with a thumb — and all
+four end in the same slide, so the sheet never simply vanishes.
+
+**The push is a real drag.** The grip is the top strip, the bar and the title
+row together, so the gesture starts well clear of the pool list scrolling below
+it; `touch-action: none` there claims the vertical drag before the browser
+spends the first centimetre deciding whether it was a page scroll. Past a
+quarter of the sheet's height, or a flick at any distance, and it goes;
+anything less snaps back. Dragging **up** is damped to a sixth rather than
+refused — a thumb that overshoots should meet a rubber band, not a wall.
+
+The slide is driven from a class rather than `@starting-style`, because a drag
+has to be able to interrupt it mid-flight by writing the transform inline, and
+the phone this is really for runs a Safari a version or two behind. The catch is
+that a transition is not a promise: with `prefers-reduced-motion` there is none
+to wait for, and a sheet dragged to exactly the bottom edge has nowhere left to
+travel. So the close waits for `transitionend` **or** the clock, whichever comes
+first, and the dialog closes either way.
+
+On a screen with room to spare — 600px wide and 640px tall, so a laptop — it
+stops hanging off the bottom edge and becomes an ordinary centred dialog, and
+the grab bar goes with it: there is nothing to push down with a mouse. That
+needs an explicit `height: 100%`, because the browser's own `dialog` rule is
+`height: fit-content` and `inset: 0` alone does not beat it — without it the box
+hugs the panel, pins itself to the top, and "centred" lands halfway up the
+screen.
+
 ## Milestones, confetti and the buzz
 
 Logging a swim should feel like something, so it does.
@@ -442,8 +480,9 @@ Some rules it follows, none of which are visible when they work:
 
 On Android the buzz is the [Vibration API](https://developer.mozilla.org/docs/Web/API/Navigator/vibrate).
 Safari has never implemented it, so an iPhone borrows a tick instead. Every
-tappable control — **+**, **−**, the ⚙, the sync pill, the history disclosure,
-*Add*, *Export*, *Reset* and each history row's **×** — carries an invisible
+tappable control — **+**, **−**, the ⚙ and the ✕ that closes it again, the sync
+pill, the history disclosure, *Add*, *Export*, *Reset* and each history row's
+**×** — carries an invisible
 native switch control (`<input type="checkbox" switch>`, Safari 17.4) laid
 exactly over it, and iOS plays its system tap when a finger toggles one. The
 button still does the work — the tap is forwarded to it — and the press

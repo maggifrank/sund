@@ -179,6 +179,8 @@ const ui = {
   backdate: el('backdate'), backdateDate: el('backdate-date'), backdateError: el('backdate-error'),
   backdateAdd: el('backdate-add'),
   settings: el('settings'), settingsToggle: el('settings-toggle'),
+  settingsPanel: el('settings-panel'), settingsGrip: el('settings-grip'),
+  settingsClose: el('settings-close'),
   inMembership: el('in-membership'), inCardPrice: el('in-card-price'), inCardTrips: el('in-card-trips'),
   inSeasonStart: el('in-season-start'), inSeasonEnd: el('in-season-end'),
   seasonWarning: el('season-warning'),
@@ -760,10 +762,142 @@ function openPoolPicker(button) {
   if (typeof select.showPicker === 'function') { try { select.showPicker(); } catch { /* not allowed here */ } }
 }
 
+/* ---------- the settings sheet ---------- */
+
+/* Settings is a modal <dialog> that comes up over the page. Four ways out —
+   the ✕, a tap outside, Escape, and pushing it back down with a thumb — and
+   they all end in the same slide, so the sheet never just vanishes.
+
+   The slide is driven from a class rather than @starting-style: a drag has to
+   be able to interrupt it mid-flight by writing the transform inline, and the
+   phone this is really for is a couple of Safari versions behind. */
+
+const SHEET_MS = 320;                    // a shade longer than the CSS transition
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+let sheetClosing = false;
+
+/* Runs `done` when the slide lands, or on the clock if it never starts — under
+   reduced motion there is no transition at all, and a sheet dragged exactly to
+   the bottom edge has nowhere left to travel, so transitionend is not a promise
+   that can be relied on alone. */
+function whenSettled(node, ms, done) {
+  if (reducedMotion.matches) { done(); return; }
+  let fired = false;
+  const finish = () => {
+    if (fired) return;
+    fired = true;
+    clearTimeout(timer);
+    node.removeEventListener('transitionend', onEnd);
+    done();
+  };
+  const onEnd = (e) => {
+    if (e.target === node && e.propertyName === 'transform') finish();
+  };
+  node.addEventListener('transitionend', onEnd);
+  const timer = setTimeout(finish, ms);
+}
+
+function openSettings() {
+  if (ui.settings.open) return;
+  ui.settings.showModal();
+  /* Painted down there first, then moved: without the reflow both styles land
+     in one recalculation and there is nothing to slide from. */
+  void ui.settingsPanel.offsetHeight;
+  ui.settings.classList.add('is-open');
+  ui.settingsToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings() {
+  if (!ui.settings.open || sheetClosing) return;
+  sheetClosing = true;
+  const dragged = Boolean(ui.settingsPanel.style.transform);
+  ui.settings.classList.remove('is-dragging');       // the transition comes back
+  /* A drag left the panel wherever the thumb did; it carries on down from
+     there rather than snapping to the top of the slide first. With no drag the
+     class alone says where it goes — which on a laptop is a fade, not a fall. */
+  ui.settingsPanel.style.transform = dragged ? 'translateY(100%)' : '';
+  ui.settings.classList.remove('is-open');
+  whenSettled(ui.settingsPanel, SHEET_MS, () => ui.settings.close());
+}
+
 ui.settingsToggle.addEventListener('click', () => {
-  const open = ui.settings.hidden;
-  ui.settings.hidden = !open;
-  ui.settingsToggle.setAttribute('aria-expanded', String(open));
+  ui.settings.open ? closeSettings() : openSettings();
+});
+ui.settingsClose.addEventListener('click', () => closeSettings());
+
+/* Escape closes the dialog on the spot. Take that over so it leaves the same
+   way everything else does. */
+ui.settings.addEventListener('cancel', (e) => {
+  e.preventDefault();
+  closeSettings();
+});
+
+/* The backdrop is a pseudo-element of the dialog, so a tap on the page behind
+   arrives here with the dialog itself as the target. Anything inside the panel
+   has the panel in its path and is left alone. */
+ui.settings.addEventListener('click', (e) => {
+  if (e.target === ui.settings) closeSettings();
+});
+
+/* Whichever way it went — including a browser closing it out from under us —
+   this is where the state is put back. The dialog restores focus to the ⚙
+   itself. */
+ui.settings.addEventListener('close', () => {
+  sheetClosing = false;
+  endSheetDrag();
+  ui.settings.classList.remove('is-open');
+  ui.settingsToggle.setAttribute('aria-expanded', 'false');
+});
+
+/* Push it back down. Past a quarter of the sheet, or a flick at any distance,
+   and it goes; anything less snaps back. Dragging up is damped rather than
+   refused — a thumb that overshoots should meet a rubber band, not a wall. */
+let sheetDrag = null;
+
+function endSheetDrag() {
+  sheetDrag = null;
+  ui.settings.classList.remove('is-dragging');
+  ui.settingsPanel.style.transform = '';
+}
+
+ui.settingsGrip.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || sheetClosing) return;
+  if (e.target.closest('button, a, input, select')) return;   // the ✕ lives in here
+  sheetDrag = { id: e.pointerId, from: e.clientY, dy: 0, vy: 0, at: e.timeStamp };
+  /* Keeps the moves coming after the finger slides off the grip. It throws if
+     the pointer is already gone by the time we ask, which costs nothing here:
+     the drag simply ends where the pointer ended. */
+  try { ui.settingsGrip.setPointerCapture(e.pointerId); } catch { /* pointer gone */ }
+  ui.settings.classList.add('is-dragging');
+});
+
+ui.settingsGrip.addEventListener('pointermove', (e) => {
+  if (!sheetDrag || e.pointerId !== sheetDrag.id) return;
+  const dy = e.clientY - sheetDrag.from;
+  const dt = e.timeStamp - sheetDrag.at;
+  if (dt > 0) sheetDrag.vy = (dy - sheetDrag.dy) / dt;        // px per ms, latest sample
+  sheetDrag.dy = dy;
+  sheetDrag.at = e.timeStamp;
+  ui.settingsPanel.style.transform = `translateY(${(dy > 0 ? dy : dy / 6).toFixed(1)}px)`;
+});
+
+ui.settingsGrip.addEventListener('pointerup', (e) => {
+  if (!sheetDrag || e.pointerId !== sheetDrag.id) return;
+  const { dy, vy } = sheetDrag;
+  sheetDrag = null;
+  const far = dy > ui.settingsPanel.offsetHeight / 4;
+  const flick = vy > 0.45 && dy > 24;
+  /* The inline transform is left where the thumb put it: closeSettings() picks
+     it up there and carries on down from it. */
+  if (far || flick) { closeSettings(); return; }
+  endSheetDrag();                                             // back where it was
+});
+
+/* A call, a gesture the system took over, a finger leaving the screen sideways
+   — none of them are a decision to close. */
+ui.settingsGrip.addEventListener('pointercancel', (e) => {
+  if (sheetDrag && e.pointerId === sheetDrag.id) endSheetDrag();
 });
 
 for (const [input, key, min] of [
@@ -850,6 +984,7 @@ bindChartHighlight(ui.weekday);
 for (const [button, radius, fill] of [
   [ui.plus, '50%'], [ui.minus, '50%'],
   [ui.settingsToggle, '10px'], [ui.mapLink, '10px'], [ui.sync, '999px'], [ui.backdateAdd, '10px'],
+  [ui.settingsClose, '10px'],
   /* These two share a row and stretch to halve it, and the disclosure spans
      its whole card — so their wrappers have to do the same. */
   [ui.exportBtn, '10px', 'grow'], [ui.resetBtn, '10px', 'grow'],
