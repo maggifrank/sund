@@ -107,6 +107,57 @@ error on the page:
 printf 'SUND_TOKEN=the-same-code\n' >> /etc/sund-publish.env
 ```
 
+## 8. A hostname in front (optional)
+
+Everything above leaves you with `http://<container-ip>:8080`, which is all
+`serve.js` ever offers: plain HTTP on one port, no TLS, no name. A reverse proxy
+in front is what turns that into an address worth typing.
+
+Here that proxy is **Caddy**, on its own host, and the name is the same one the
+published site answers to:
+
+```
+sund.talva.is  →  caddy.talva.is  →  <container-ip>:8080
+```
+
+The site block is the whole of it — Caddy terminates TLS and passes the request
+on unchanged, because Sund has no notion of being behind anything:
+
+```
+sund.talva.is {
+	reverse_proxy <container-ip>:8080
+}
+```
+
+One wrinkle worth knowing before you debug it at midnight: a name that resolves
+only on the inside cannot answer an HTTP challenge from the outside, so the
+certificate has to come from a **DNS challenge** instead. That needs a Caddy
+build with the DNS plugin for whoever hosts the zone, and an API token for it.
+
+### The split is in the name, not the path
+
+The same hostname is the read-only site from anywhere else, and nothing about
+the request distinguishes them — no port, no path, no prefix. **Split-horizon
+DNS is the entire mechanism:**
+
+```
+internal resolver   sund.talva.is → caddy.talva.is → a private address → the container
+public resolvers    sund.talva.is → the CDN → Netlify's static snapshot
+```
+
+Which means the public answer must never point at the container. That is the
+property the whole arrangement rests on, so check it rather than assume it:
+
+```
+dig +short sund.talva.is
+dig +short @1.1.1.1 sund.talva.is
+```
+
+The first should be a private address, the second should not be. If the public
+one ever resolves to the container, the access code from step 7 becomes the only
+thing standing between the internet and the count — and if you never set one,
+there is nothing standing there at all.
+
 ## Updating
 
 Manually:
