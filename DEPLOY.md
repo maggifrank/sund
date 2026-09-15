@@ -126,7 +126,7 @@ request on unchanged, because Sund has no notion of being behind anything:
 ```
 sund.talva.is {
 	tls {
-		dns cloudflare {env.CF_API_TOKEN}
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy <container-ip>:8080
 }
@@ -146,7 +146,7 @@ That needs two things a default install does not give you:
   `xcaddy build --with github.com/caddy-dns/cloudflare`, or take it from Caddy's
   download page with that plugin ticked.
 - **A Cloudflare API token with `Zone:DNS:Edit`** on the zone. It reaches Caddy
-  through the environment, not the Caddyfile — `{env.CF_API_TOKEN}`
+  through the environment, not the Caddyfile — `{env.CLOUDFLARE_API_TOKEN}`
   above is read at load time, so the file itself stays free of secrets and safe
   to copy around. Wire it up however the Caddy unit takes its environment; an
   `EnvironmentFile=` on the service, root-owned and `chmod 600`, is the same
