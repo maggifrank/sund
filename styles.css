@@ -148,6 +148,14 @@ body {
   #history-panel,
   #history-body,
   #todo-panel { max-width: 760px; margin-inline: auto; }
+
+  /* The bottom band is three tiles deep and the pool table is the tallest of
+     them, so it — not either graph — is what decides how much of the board the
+     graphs occupy. Tightening its rows brings the whole band down, and the pie
+     comes in to match rather than being left to float in the height its
+     neighbours are holding open. */
+  .app--dash .pool-row { padding-block: 6px; }
+  .app--dash .weekday-pie { flex: 0 1 155px; }
 }
 
 /* Room for a third column, which is where the counter stops sharing a row and
