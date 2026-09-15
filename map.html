@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main class="app">
+<main class="app app--map">
 
   <header class="head">
     <a id="back" class="icon-btn" href="./" data-i18n-title="nav.back" data-i18n-aria="nav.back">←</a>
@@ -31,7 +31,7 @@
     <p id="off-map" class="note" hidden></p>
   </section>
 
-  <section class="card map-card" aria-labelledby="country-label">
+  <section class="card map-card map-card--country" aria-labelledby="country-label">
     <div id="country-label" class="label" data-i18n="map.country"></div>
     <div id="country" class="map"></div>
     <ul class="map-legend">
@@ -40,7 +40,7 @@
     </ul>
   </section>
 
-  <section class="card map-card" aria-labelledby="capital-label">
+  <section class="card map-card map-card--capital" aria-labelledby="capital-label">
     <div id="capital-label" class="label" data-i18n="map.capital"></div>
     <div id="capital" class="map"></div>
     <ul class="map-legend">
