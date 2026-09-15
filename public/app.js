@@ -10,7 +10,8 @@ import {
 import { LANGS, LANG_NAMES, detectLang, t, plural, ordinal, formatDate } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import {
-  chartHTML, chartSignature, weekdayHTML, weekdaySignature, bindChartTooltip, monthKey
+  chartHTML, chartSignature, weekdayHTML, weekdaySignature,
+  bindChartTooltip, bindChartHighlight, monthKey
 } from './lib/chart.js';
 import { renderPoolTable } from './lib/pooltable.js';
 
@@ -300,6 +301,8 @@ ui.historyToggle.addEventListener('click', () => {
 
 applyStaticStrings();
 bindChartTooltip(ui.chart);
+bindChartHighlight(ui.chart);
+bindChartHighlight(ui.weekday);
 
 const loadJSON = async (path) => {
   try {
