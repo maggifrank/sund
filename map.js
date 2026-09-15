@@ -190,10 +190,10 @@ function render() {
   ui.visited.setAttribute('aria-label', t(lang, 'map.visitedCount', { n: done, total: rows.length }));
   ui.progressFill.style.width = `${rows.length ? (done / rows.length) * 100 : 0}%`;
 
-  /* Say outright that the map is not the whole list. Fifty-odd of the pools in
-     the directory have no coordinates anywhere — see lib/pools.js — and a page
-     that quietly drew 81 of 131 would be claiming a completeness it has not
-     got. They are in the list below instead, tagged. */
+  /* Say outright that the map is not the whole list. Five of the pools in the
+     directory have no coordinates anywhere — see lib/pools.js — and a page that
+     quietly drew 126 of 131 would be claiming a completeness it has not got.
+     They are in the list below instead, tagged. */
   ui.offMap.hidden = unplaced === 0;
   ui.offMap.textContent = unplaced === 0
     ? ''

@@ -236,13 +236,24 @@ unavailable* — so it is never guessing behind your back.
 [sundlaugar.is](https://sundlaugar.is/sundlaugar/) — both its pool directory and
 the [natural pools](https://sundlaugar.is/heitar_laugar/) it keeps in a separate
 section. Neither has **any coordinates at all**, so positions were looked up in
-OpenStreetMap by name. 81 matched and can be detected by location; the other 50
-carry a name only — they cannot be auto-detected, but they appear in the History
-picker, so a swim can still be attributed to them by hand.
+OpenStreetMap. Matching by name placed 81 of them and left fifty with nothing —
+those were not missing from OSM so much as unnamed in it, since the directory
+calls a pool after its town and the basins inside a sports complex are usually
+untagged.
+
+What the directory does publish for every pool is an **address**, which is the
+better key. [`bin/survey-pools.mjs`](bin/survey-pools.mjs) reads it off the
+listing, geocodes it, and snaps to whatever pool OSM has within 500 m: the
+address says which building, OSM says where the water is. That placed the other
+45, so 122 of them carry a surveyed position and four more stand at their
+address, OSM having no pool there at all. The five left are the wild pools,
+which the natural-pools section lists without an address — they cannot be
+auto-detected, but they appear in the History picker, so a swim can still be
+attributed to them by hand.
 
 OSM tags these inconsistently (Laugardalslaug is a `shelter`, Sundhöll
-Reykjavíkur a `sauna`), so the matching is by name, and a point sits somewhere
-inside a complex rather than at its door. Nothing is matched further than 250 m,
+Reykjavíkur a `sauna`), so neither pass lets a tag decide what a pool is, and a
+point sits somewhere inside a complex rather than at its door. Nothing is matched further than 250 m,
 which absorbs that. Anywhere still unknown, the app asks for a name once,
 remembers the coordinates, and recognises it from then on.
 
@@ -324,12 +335,12 @@ gives the pool and its count in words, and the list at the bottom says it a
 third time. Both pairs were stepped with the same palette validator the charts
 were, and clear every check it makes.
 
-**The map is not the whole list, and says so.** 81 of the 131 pools have
-coordinates; the other 50 are names from the directory that OpenStreetMap does
-not place — see the header of `lib/pools.js`. Those cannot be drawn at all, so
+**The map is not the whole list, and says so.** 126 of the 131 pools have
+coordinates; the other five are wild pools that neither the directory nor
+OpenStreetMap places — see the header of `lib/pools.js`. Those cannot be drawn at all, so
 the counter card states how many are missing and the **Ófarnar laugar** list at
 the bottom carries them with a *not on the map* tag. The fraction counts every
-pool either way: a page that quietly drew 81 of 131 would be claiming a
+pool either way: a page that quietly drew 126 of 131 would be claiming a
 completeness it has not got.
 
 The page is read-only and has nothing of its own to save. It draws the counter
