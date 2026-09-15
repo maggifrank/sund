@@ -273,10 +273,11 @@ to are the built-in survey in `lib/pools.js`, which the public build has always
 shipped as code.
 
 Totals rather than a count the page works out for itself, because it cannot:
-its own trips are card-only and carry no pool. The table is counted over the
-whole history, so it covers the off-card swims the published trips leave out and
-its total agrees with the counter card's. A snapshot published before the table
-existed has no `poolTable` key, and the section is simply absent.
+the trips it is given carry a date and nothing else. The table is counted over
+the whole history, which is now also what those trips cover, so the table's
+total, `totals.all` and the length of the history are three views of one number.
+A snapshot published before the table existed has no `poolTable` key, and the
+section is simply absent.
 
 Nothing is hidden in the page that isn't also absent from `state.json`.
 
