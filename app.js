@@ -12,7 +12,8 @@ import {
 } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import {
-  chartHTML, chartSignature, weekdayHTML, weekdaySignature, bindChartTooltip, monthKey
+  chartHTML, chartSignature, weekdayHTML, weekdaySignature,
+  bindChartTooltip, bindChartHighlight, monthKey
 } from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
@@ -837,6 +838,8 @@ function askForToken() {
 ui.langSelect.value = lang;
 applyStaticStrings();
 bindChartTooltip(ui.chart);
+bindChartHighlight(ui.chart);
+bindChartHighlight(ui.weekday);
 /* An iPhone has no Vibration API, so every tappable control borrows its tick
    from an invisible native switch laid over it. A no-op everywhere the real
    thing works, and the listeners above stay on the buttons themselves, which

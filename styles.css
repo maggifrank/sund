@@ -560,7 +560,11 @@ a.icon-btn {
   grid-template-columns: 10px 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 2px 0;
+  /* Padded out and pulled back by the same amount, so the hover tint has room
+     to sit in without the names and counts moving off their columns. */
+  padding: 2px 6px;
+  margin: 0 -6px;
+  border-radius: 6px;
   font-size: 13px;
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
@@ -577,6 +581,61 @@ a.icon-btn {
 
 @media (max-width: 380px) {
   .weekday-plot { gap: 14px; }
+}
+
+/* ---- hovering a chart ---- */
+
+/* Both charts answer the same way: whatever the pointer is on keeps its ink and
+   everything else steps back, so the mark being read is the mark being looked
+   at. On the pie this is what makes the legend usable — six of its seven wedges
+   are the same colour, and the row and the wedge now light up together, which
+   is the one thing colour alone cannot say.
+
+   Opacity only by default; the movement below is gated on reduced motion. */
+.bar, .bar-label, .slice, .slice-label, .weekday-row { transition: opacity .15s ease; }
+
+.chart.is-hovering .bar:not(.is-hover),
+.chart.is-hovering .bar-label:not(.is-hover) { opacity: .3; }
+/* The month under the pointer, said on the axis as well as in the tooltip. */
+.chart .axis-text.is-hover { fill: var(--ink); font-weight: 700; }
+
+/* The pie's container is markup the page ships rather than markup the chart
+   rebuilds, so it is addressed by its id — there is no class on it to use. */
+#weekday.is-hovering .slice:not(.is-hover),
+#weekday.is-hovering .slice-label:not(.is-hover) { opacity: .38; }
+#weekday.is-hovering .weekday-row:not(.is-hover) { opacity: .45; }
+.weekday-row.is-hover { background: color-mix(in srgb, var(--chart-mark) 12%, transparent); }
+
+/* Motion is the flourish, so it is the part that goes. The highlight above is
+   information and stays either way. */
+@media (prefers-reduced-motion: no-preference) {
+  .slice, .slice-label {
+    transition: opacity .15s ease, transform .18s cubic-bezier(.2, .7, .3, 1);
+  }
+  .weekday-row { transition: opacity .15s ease, background-color .15s ease; }
+
+  /* One step straight out along the wedge's own middle — the direction was
+     worked out where the wedge was drawn and arrives as --nx/--ny. */
+  .slice.is-hover, .slice-label.is-hover { transform: translate(var(--nx), var(--ny)); }
+
+  /* Drawn in rather than simply appearing: columns grow off the baseline they
+     are measured from, wedges open out of the centre they share. --i staggers
+     them so the chart arrives as a sweep and not a flash. */
+  .bar {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: bar-grow .45s cubic-bezier(.2, .7, .3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 30ms);
+  }
+  @keyframes bar-grow { from { transform: scaleY(0); } }
+
+  .slice {
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+    animation: slice-open .4s cubic-bezier(.2, .7, .3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  @keyframes slice-open { from { opacity: 0; transform: scale(.8); } }
 }
 
 .lang-select {
