@@ -120,19 +120,37 @@ published site answers to:
 sund.talva.is  →  caddy.talva.is  →  <container-ip>:8080
 ```
 
-The site block is the whole of it — Caddy terminates TLS and passes the request
-on unchanged, because Sund has no notion of being behind anything:
+The site block is nearly the whole of it — Caddy terminates TLS and passes the
+request on unchanged, because Sund has no notion of being behind anything:
 
 ```
 sund.talva.is {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
 	reverse_proxy <container-ip>:8080
 }
 ```
 
-One wrinkle worth knowing before you debug it at midnight: a name that resolves
-only on the inside cannot answer an HTTP challenge from the outside, so the
-certificate has to come from a **DNS challenge** instead. That needs a Caddy
-build with the DNS plugin for whoever hosts the zone, and an API token for it.
+The `tls` block is the wrinkle, and it is the one worth reading before you debug
+it at midnight rather than after. A name that resolves only on the inside cannot
+answer an HTTP challenge from the outside, so the certificate comes from a **DNS
+challenge** instead: Caddy proves it controls the zone rather than the address,
+which works regardless of where the name points.
+
+That needs two things a default install does not give you:
+
+- **A Caddy build carrying the Cloudflare DNS plugin.** The distribution package
+  does not include it, and the failure is not obvious — the config is accepted
+  and the renewal fails later. Build one with
+  `xcaddy build --with github.com/caddy-dns/cloudflare`, or take it from Caddy's
+  download page with that plugin ticked.
+- **A Cloudflare API token with `Zone:DNS:Edit`** on the zone. It reaches Caddy
+  through the environment, not the Caddyfile — `{env.CLOUDFLARE_API_TOKEN}`
+  above is read at load time, so the file itself stays free of secrets and safe
+  to copy around. Wire it up however the Caddy unit takes its environment; an
+  `EnvironmentFile=` on the service, root-owned and `chmod 600`, is the same
+  shape `/etc/sund-publish.env` uses for the Netlify token below.
 
 ### The split is in the name, not the path
 
