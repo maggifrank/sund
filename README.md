@@ -232,9 +232,10 @@ making the count wait on a GPS fix, and a line under the counter says what it
 thinks — *You're at Laugardalslaug*, *No known pool nearby*, or *Location
 unavailable* — so it is never guessing behind your back.
 
-`lib/pools.js` carries all 131 pools listed at
-[sundlaugar.is](https://sundlaugar.is/sundlaugar/) — both its pool directory and
-the [natural pools](https://sundlaugar.is/heitar_laugar/) it keeps in a separate
+`lib/pools.js` carries the 126 pools listed at
+[sundlaugar.is](https://sundlaugar.is/sundlaugar/) that can be placed — from
+both its pool directory and the
+[natural pools](https://sundlaugar.is/heitar_laugar/) it keeps in a separate
 section. Neither has **any coordinates at all**, so positions were looked up in
 OpenStreetMap. Matching by name placed 81 of them and left fifty with nothing —
 those were not missing from OSM so much as unnamed in it, since the directory
@@ -245,11 +246,14 @@ What the directory does publish for every pool is an **address**, which is the
 better key. [`bin/survey-pools.mjs`](bin/survey-pools.mjs) reads it off the
 listing, geocodes it, and snaps to whatever pool OSM has within 500 m: the
 address says which building, OSM says where the water is. That placed the other
-45, so 122 of them carry a surveyed position and four more stand at their
-address, OSM having no pool there at all. The five left are the wild pools,
-which the natural-pools section lists without an address — they cannot be
-auto-detected, but they appear in the History picker, so a swim can still be
-attributed to them by hand.
+45 — 41 on a surveyed position, and four at their address where OSM has no pool
+at all.
+
+Five wild pools resisted both passes, listed without an address and unnamed in
+OSM, and they are **not in the list**. A pool that cannot be placed cannot be
+detected, and its only use was a name in the picker — which the app produces on
+demand anyway: swim at one, name it once on the spot, and it is remembered along
+with the coordinates you were standing on.
 
 OSM tags these inconsistently (Laugardalslaug is a `shelter`, Sundhöll
 Reykjavíkur a `sauna`), so neither pass lets a tag decide what a pool is, and a
@@ -311,9 +315,9 @@ happened.
 **Kort** — the 🗺 in the header — is the pool list as a picture: every pool the
 app knows about, drawn where it actually is, **filled green where you have swum
 and a hollow red ring where you have not**. The headline is the bare fraction,
-`23 / 131`, with a progress bar under it.
+`23 / 126`, with a progress bar under it.
 
-Two maps rather than one. A quarter of the pools that can be placed at all sit
+Two maps rather than one. A sixth of the pools that can be placed at all sit
 inside twenty kilometres of Reykjavík, and the three the card covers are within
 two and a half of each other — so at the scale that fits Iceland into a phone
 column they are one smudge, and the card's own pools are a single dot. The
@@ -335,13 +339,12 @@ gives the pool and its count in words, and the list at the bottom says it a
 third time. Both pairs were stepped with the same palette validator the charts
 were, and clear every check it makes.
 
-**The map is not the whole list, and says so.** 126 of the 131 pools have
-coordinates; the other five are wild pools that neither the directory nor
-OpenStreetMap places — see the header of `lib/pools.js`. Those cannot be drawn at all, so
-the counter card states how many are missing and the **Ófarnar laugar** list at
-the bottom carries them with a *not on the map* tag. The fraction counts every
-pool either way: a page that quietly drew 126 of 131 would be claiming a
-completeness it has not got.
+**The map says so when it is not the whole list.** Every pool in the survey has
+a position, so it usually is — but a pool named at a check-in with no fix to
+hand has none, and cannot be drawn. The counter card then states how many are
+missing and the **Ófarnar laugar** list at the bottom carries them with a *not
+on the map* tag. The fraction counts every pool either way: a page that quietly
+drew 126 of 127 would be claiming a completeness it has not got.
 
 The page is read-only and has nothing of its own to save. It draws the counter
 page's offline cache for the first paint — queue included, through the same
@@ -375,7 +378,7 @@ in `lib/pools.js` is a directory of Iceland's swimming pools, not a diary.
 
 A snapshot published before the rows carried an id cannot say which pools those
 swims were at. The page says so in a sentence and draws nothing, rather than
-putting a red ring on all 131 and claiming the swimming never happened.
+putting a red ring on all 126 and claiming the swimming never happened.
 
 ### How the country is drawn
 

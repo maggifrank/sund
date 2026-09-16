@@ -24,6 +24,11 @@
  * from it, and what OSM calls it, so a match can be read rather than trusted.
  * Nothing is written without --write.
  *
+ * Every pool in the list has a position now, so a bare run has nothing to do
+ * and says so. It earns its keep on --id, which re-looks-up a pool whether it
+ * has a position or not, so what is committed can be diffed against what the
+ * directory says today; and on the next name the directory adds.
+ *
  * Usage:
  *   node bin/survey-pools.mjs                 # print what it finds
  *   node bin/survey-pools.mjs --write         # patch lib/pools.js

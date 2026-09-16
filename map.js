@@ -182,7 +182,7 @@ function render() {
   const done = rows.filter((row) => row.visits > 0).length;
   const unplaced = rows.filter((row) => !placeable(row)).length;
 
-  /* A bare fraction, for the reason the pool picker's count gives: "23 / 131"
+  /* A bare fraction, for the reason the pool picker's count gives: "23 / 126"
      needs no plural and no preposition, so it is right in every language. The
      words go to a screen reader, where the numbers sit after a colon and
      nothing has to agree with them either. */
@@ -190,10 +190,11 @@ function render() {
   ui.visited.setAttribute('aria-label', t(lang, 'map.visitedCount', { n: done, total: rows.length }));
   ui.progressFill.style.width = `${rows.length ? (done / rows.length) * 100 : 0}%`;
 
-  /* Say outright that the map is not the whole list. Five of the pools in the
-     directory have no coordinates anywhere — see lib/pools.js — and a page that
-     quietly drew 126 of 131 would be claiming a completeness it has not got.
-     They are in the list below instead, tagged. */
+  /* Say outright when the map is not the whole list. Every pool in the survey
+     has a position now, so this line usually says nothing at all — but a pool
+     named at a check-in with no fix to hand has none, and a page that quietly
+     drew 126 of 127 would be claiming a completeness it has not got. Those are
+     in the list below instead, tagged. */
   ui.offMap.hidden = unplaced === 0;
   ui.offMap.textContent = unplaced === 0
     ? ''
