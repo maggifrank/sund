@@ -214,6 +214,14 @@ previous revision and that revision is recorded as failed, so a bad push
 restarts the service once rather than every five minutes forever — push a fix
 and the next run picks it up and clears the mark.
 
+A successful update also writes to `publish-trigger`, the file the publisher
+watches, so a code change that alters what the **public** page renders reaches
+it in seconds rather than waiting on the six-hourly safety net. New coordinates
+in `lib/pools.js` are the case that showed this up: the public map went on
+drawing the old survey until somebody happened to log a swim. If the publisher
+is not installed, the write goes to a file nothing is watching and costs
+nothing; the run itself is a no-op when the built site is genuinely unchanged.
+
 If you have edited files directly in `/opt/sund`, the update refuses to
 fast-forward and leaves both your changes and the running service alone. Commit
 or discard them and it resumes.
@@ -293,9 +301,11 @@ A run with no new trips logs `no change since rev N — nothing to publish` and
 does not deploy at all. Publishing is event-driven, so this only happens on the
 six-hourly safety net or a duplicate trigger.
 
-To force a republish when the data has not changed but the published snapshot is
-wrong, clear the marker first, or the run will correctly decide there is nothing
-to do:
+The marker it compares is a fingerprint of the **built site**, not the revision
+— despite what that message says — so a code change counts as a change and
+deploys on its own; there is usually nothing to force. Clear the marker only
+when the published snapshot is wrong for a reason the build cannot see, such as
+a deploy that half-landed:
 
 ```
 rm -f /var/lib/sund-publish/last.json && systemctl start sund-publish.service
