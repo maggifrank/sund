@@ -384,12 +384,42 @@ putting a red ring on all 126 and claiming the swimming never happened.
 
 The coastline is **committed, not fetched**. The app has no build step and no
 dependencies, and a map that needed the network to draw the country would be
-useless in the one place this app is actually opened. It comes from **Natural
-Earth 1:10m** (public domain), Douglas–Peucker simplified to about 2,100 points,
-and `bin/build-coastline.mjs` regenerates it — so the committed path can be
-re-derived rather than trusted. Run it and diff it. Iceland arrives as five
-polygons, the mainland and four islands; three of those have a pool on them, so
-none are dropped for being small.
+useless in the one place this app is actually opened. `bin/build-coastline.mjs`
+regenerates it, so the committed paths can be re-derived rather than trusted —
+run it and diff it.
+
+It comes from **IS 50V strandlína**, the national coastline at 1:50,000 with a
+positional accuracy of 10 m, published by Náttúrufræðistofnun under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — the credit line under
+the capital map is that licence's attribution. It replaced Natural Earth 1:10m,
+which is drawn to about a kilometre. That was fine for the outline of the
+country and wrong by enough to matter everywhere else: **25 of the 126 pools
+were in the sea**, Höfn and Borgarnes a kilometre and a half offshore because
+the peninsulas those towns stand on were not in it, and five in the capital
+area, where Seltjarnarnes was a blunt triangle. It was written down as a known
+limit, which was the wrong call — a pool in the sea is a map that is wrong.
+
+**Two outlines, one per map.** The capital map is thirteen times closer than the
+country map, so a coast simplified for the country is visibly wrong there, and
+one detailed enough for the capital would be a megabyte of fjords nobody can see
+at country scale. Each is cut from the national data in the page units of the map
+that draws it and simplified to the same tolerance *on its own page* — under
+half a pixel at the widest the board draws a map. The capital's is clipped to its
+window first. Islands too small to be a dot are dropped from each, except any
+island with a pool on it: Grímsey is a speck at country scale and it is also a
+pool. The page refuses to draw a window it has no outline for, rather than blow
+up the country's — which is exactly how the capital map got its pools wet.
+
+**Every pool is checked against what is drawn.** After simplifying, the
+generator tests each pool against the rounded coordinates that go into the file,
+not the ring before rounding — checking the unrounded ring reported zero while
+three hot pools built on the shore sat in the sea on the page. A pool that
+simplification has put on the wrong side of the coast gets the coast around it
+held at full detail and is cut again. Four needed it — Flateyri, Hellulaug,
+Geosea and the tubs at Drangsnes, between 43 m and nothing at all offshore — for
+107 extra points, where holding every pool's neighbourhood at full detail costs
+4,500. The result is written into the header of `lib/coastline.js`: **0 of 126**
+in the sea on the country map, **0 of 21** on the capital map.
 
 It is projected on **Iceland's own national grid** — ISN93 / Lambert 1993,
 EPSG:3057: a conformal conic on GRS80 with standard parallels at 64°15′ and
@@ -771,12 +801,6 @@ your count, and is a shared code rather than real per-user accounts.
   is more taps worth making, which is what the playable confetti does. It also
   rests on a WebKit behaviour Apple has already narrowed once, in iOS 26.5, and
   could remove; when it goes, the iPhone is simply silent again.
-- **The capital map is zoomed past its own coastline.** Natural Earth's 1:10m
-  outline carries about a kilometre of detail, which is invisible at the scale of
-  the country and plain to see on the 40 km capital map: straight edges, blunt
-  headlands, Álftanes as a wedge. The markers are exact either way — it is the
-  shoreline under them that is approximate — and there is no finer public-domain
-  outline to swap in.
 - **A pool can only be set from the History list.** There is no bulk edit, so
   attributing a long backlog is one tap per trip.
 - **Bulk import is a script, not a button.** `bin/import-trips.mjs` reads a
@@ -810,14 +834,14 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
 | `lib/poolmap.js` | the two pool maps and the marks on them |
-| `lib/iceland.js` | the ISN93 / Lambert projection and the map page's geometry |
-| `lib/coastline.js` | the coastline path — generated, do not edit |
+| `lib/iceland.js` | the ISN93 / Lambert projection, the capital window and the map page's geometry |
+| `lib/coastline.js` | the two coastlines, country and capital — generated, do not edit |
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
 | `lib/rates.js` | ECB rate fetching and cache freshness |
 | `serve.js` | LXC backend — static files + API, file-backed, no dependencies |
 | `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
 | `bin/publish.mjs` | snapshot, build and deploy the public site |
-| `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from Natural Earth |
+| `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from IS 50V, and check every pool is on land |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |
 | `deploy/sund-publish.*` | publish the public snapshot every 15 min |

@@ -1121,6 +1121,15 @@ label.pool-pick {
 
 .map-todo-row { grid-template-columns: auto 1fr auto; }
 
+/* The coastline's credit: small, but a link a reader can follow, not fine print
+   folded into the legend. */
+.map-credit {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.map-credit a { color: inherit; }
+
 /* ---- the swag: confetti, emoji and the counter's jump ---- */
 
 /* Over everything and deaf to the pointer: a swim logged during the fall must
