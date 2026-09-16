@@ -125,8 +125,23 @@ body {
 
   /* Half of a 1200px board is 593px, and the count row sets its minus and plus
      against its own edges — left to itself the two of them end up a hand's
-     width apart with the number stranded in between. */
-  .app--dash .count-row { max-width: 420px; }
+     width apart with the number stranded in between. Centred as well as
+     capped: the cap alone kept that 420px at the left edge of a 593px tile,
+     which left the number the whole tile is built around sitting 69px left of
+     its middle. */
+  .app--dash .count-row { max-width: 420px; margin-inline: auto; }
+
+  /* The tiles that are one number and a caption about it. Centred as a block,
+     so the number sits on the tile's axis rather than against its left edge —
+     which is what made a row of them look misaligned even when every tile was
+     exactly where the layout put it. The break-even tile is left out: it is a
+     paragraph of prose, and centred prose is harder to read. */
+  .app--dash .counter,
+  .app--dash .hero,
+  .app--dash .stat { text-align: center; }
+  /* The location line is a flex row — a dot and a name — so it takes its
+     alignment from justify-content and ignores the text-align above. */
+  .app--dash .here { justify-content: center; }
 
   .app--map {
     display: grid;
