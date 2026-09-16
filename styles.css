@@ -150,8 +150,24 @@ body {
       "head    head"
       "counter counter"
       "country capital"
-      "history history";
+      "history history"
+      "pages   pages";
   }
+
+  /* A pool's page is the dashboard's board again — two columns, tiles moving
+     whole — for the same reasons the note above gives. The hours and the
+     prices are the long tiles and the rest are short, which is exactly the mix
+     column flow packs well and a grid does not. */
+  .app--pool {
+    display: block;
+    columns: 2;
+    column-gap: 14px;
+  }
+  .app--pool .pool-cards > *,
+  .app--pool > .head { break-inside: avoid; margin-bottom: 14px; }
+  .app--pool > .head,
+  .app--pool > .rate-note,
+  .app--pool .pool-cards > .rate-note { column-span: all; }
 
   /* The lists that open along the whole bottom edge. Their rows are four short
      fields — a number, a date, a pool, a delete — and stretched across 1200px
@@ -162,7 +178,8 @@ body {
      panel. */
   #history-panel,
   #history-body,
-  #todo-panel { max-width: 760px; margin-inline: auto; }
+  #todo-panel,
+  #pages-panel { max-width: 760px; margin-inline: auto; }
 
   /* The bottom band is three tiles deep and the pool table is the tallest of
      them, so it — not either graph — is what decides how much of the board the
@@ -189,6 +206,9 @@ body {
 .rate-note      { grid-column: 1 / -1; }
 .map-card--country { grid-area: country; }
 .map-card--capital { grid-area: capital; }
+/* A second full-width list on the map's board. It is a .history for the look,
+   and has to be told it does not share that one's place in the grid. */
+.map-pages      { grid-area: pages; }
 
 /* Wraps rather than squeezes: the controls on the right are a sync pill whose
    width is whatever the status sentence happens to be, and on the narrowest
@@ -1135,6 +1155,149 @@ label.pool-pick {
 }
 
 .map-todo-row { grid-template-columns: auto 1fr auto; }
+
+/* The region list: sticky region headings over the rows, as the history's
+   months are, so the panel runs edge to edge and the rows keep the gutter. */
+#pages-panel {
+  max-height: 55vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding: 0 0 8px;
+}
+#pages-panel .pool-link { padding-inline: 16px; }
+
+/* A mark with a page behind it says so to a pointer. */
+.map-hit[data-href] { cursor: pointer; }
+
+/* ---- a pool's page ---- */
+
+/* No box of its own: the cards inside are the page's tiles, in the phone's
+   column and on the board alike. */
+.pool-cards { display: contents; }
+
+/* The pool's name is the heading, and some pools are called
+   "Íþróttamiðstöðin Kleppjárnsreykjum" — it takes the room there is and wraps
+   rather than pushing the language picker off the row. */
+.app--pool .head h1 {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 20px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.pool-address { margin: 8px 0 0; font-size: 17px; font-weight: 600; }
+.pool-card .pool-address { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+.pool-today { margin: 6px 0 0; font-size: 15px; color: var(--accent); font-weight: 600; }
+
+.pool-visits {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+
+.hours-block + .hours-block { margin-top: 14px; }
+.hours-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+table.hours {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+table.hours th,
+table.hours td { padding: 6px 8px; }
+table.hours th { text-align: left; font-weight: 500; color: var(--ink-dim); }
+table.hours td { text-align: right; }
+table.hours tr + tr { border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+/* Today's row, in whichever block is in force. Weight as well as a tint, so it
+   is not only a colour saying which row it is. */
+table.hours tr.is-today { background: color-mix(in srgb, var(--accent) 11%, transparent); }
+table.hours tr.is-today th,
+table.hours tr.is-today td { color: var(--ink); font-weight: 700; }
+table.hours tr.is-today th { border-radius: 8px 0 0 8px; }
+table.hours tr.is-today td { border-radius: 0 8px 8px 0; }
+
+.hours-note { margin: 8px 0 0; font-size: 13px; color: var(--ink-dim); }
+.pool-notice {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 10px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.chips li {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.price-group { padding: 10px 0; }
+.price-group + .price-group { border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.price-who { font-size: 14px; font-weight: 600; }
+.price-list,
+.contact-list {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.price-list dt,
+.contact-list dt { color: var(--ink-dim); }
+.price-list dd,
+.contact-list dd { margin: 0; text-align: right; }
+.contact-list { grid-template-columns: auto 1fr; gap: 8px 16px; margin-top: 10px; font-size: 15px; }
+.contact-list dd { overflow-wrap: anywhere; }
+.contact-list a,
+.pool-links a { color: var(--accent); }
+
+.price-notes { margin-top: 8px; font-size: 13px; color: var(--ink-dim); }
+.price-notes summary { cursor: pointer; padding: 6px 0; }
+.price-notes p { margin: 6px 0 0; }
+
+.pool-links { margin: 10px 0 0; font-size: 14px; }
+
+/* A row that is a way to a pool's page: the map's mark, the name, how often,
+   and the chevron that says it goes somewhere. */
+a.pool-link {
+  grid-template-columns: auto 1fr auto auto;
+  color: inherit;
+  text-decoration: none;
+}
+a.pool-link:hover .pool-name { text-decoration: underline; }
+a.pool-link .chev { font-size: 16px; }
+
+/* The pool table's names lead to the same pages, and look like the names they
+   were rather than like a column of links. */
+a.pool-name { color: inherit; text-decoration: none; }
+a.pool-name:hover { text-decoration: underline; }
 
 /* The coastline's credit: small, but a link a reader can follow, not fine print
    folded into the legend. */

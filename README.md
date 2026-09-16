@@ -431,6 +431,78 @@ The generator projects the coastline through the very same function that places
 the markers, and refuses to write an outline that no longer fits the page — so
 the country and the pools on it cannot drift apart.
 
+## Pool pages
+
+Every pool has a page of its own, `pool.html?id=…`: where it is, what it has,
+when it is open, what it costs and how to reach it, with how often it has been
+swum in at the top. The pool table's names lead there, and so does the map — a
+click on a mark, or on a phone a second tap on the same one, since the first is
+how a finger asks which pool it is. The map page also lists every pool with a
+page, region by region, for when a mark is too small to hit.
+
+**The details come from [sundlaugar.is](https://sundlaugar.is)**, the national
+pool directory, read by [`bin/fetch-pool-info.mjs`](bin/fetch-pool-info.mjs)
+into `lib/poolinfo.js`. It is fetched **a region at a time**, and so far only
+the capital area has been — twenty pools, from Klébergslaug on Kjalarnes to
+Ásvallalaug in Hafnarfjörður, Sky Lagoon and the beach at Nauthólsvík among
+them. A pool elsewhere still has its page, with its count and its place on the
+map, and a line saying the directory's details are not in yet. Fetching the next
+region is one command, and leaves the regions already fetched alone:
+
+```bash
+node bin/fetch-pool-info.mjs --region reykjanes           # read it and print it
+node bin/fetch-pool-info.mjs --region reykjanes --write   # then write it
+```
+
+**What is taken is what a swimmer acts on, and not the directory's writing.**
+Each pool's page there has a few paragraphs about it and a gallery; those are
+somebody's work, and the page links to them instead of copying them. What the
+paragraphs *say* is read out of them as tags — "heitir pottar, kaldur pottur og
+eimbað" is hot tubs, a cold tub and a steam bath — which the page can name in
+all three languages. A tag is only ever added: a description that never mentions
+a cold tub is not taken as evidence there isn't one. The notes beside the hours
+and under the price table are kept word for word, because they are the terms the
+prices are sold on, and a paraphrase that got one wrong would be a price the
+pool does not charge.
+
+**Icelandic only, on purpose.** The directory has English pages too, but they
+are a separate copy and they have already drifted — Dalslaug's annual pass for
+over-67s is 4.000 kr on one and 4.150 kr on the other. So there is one source,
+and the page translates what it could parse: weekdays, facilities, seasons and
+its own labels. Notes and ticket names stay as written, and the page says so
+when it is being read in English or Polish.
+
+**The directory has no structure for hours.** They are a text box, typed a
+little differently on every page, so the script sorts each line by what it
+looks like: a row of days and times, a heading, a season, a closure, or a note.
+It reads "Laugar- og sunnudaga" as two days rather than a range and "mánudaga
+til föstudaga" as one; it works out that "Vetraropnun" with no dates is the rest
+of the year beside a dated summer; it drops holiday hours headed with a year
+that has gone. Closures are the one thing the directory is worst at: in
+September, Laugardalslaug's page still said it was shut for maintenance in
+August. A closure that is over is dropped when the page is read, and one that
+is not carries its end date, so the pool page stops showing it the day after.
+
+**Today is Iceland's today.** The row for today is highlighted in whichever block
+of hours is in force, and the top of the page says *Open today: 06:30–22:00* —
+but only when that can actually be said: one block of opening hours in force, one
+row in it for today, and no closure standing. Iceland keeps UTC all year, so the
+page takes the date and weekday from UTC, whatever the phone thinks its time
+zone is. It does not know about public holidays, which the directory lists
+inconsistently or not at all.
+
+**Nothing new is published about the swimming.** The private page says when a
+pool was last swum in; the public one is handed the same totals as the map and
+says how often, never when. Whether the card covers a pool is shown on the
+public page only for pools that have been swum in, since the card's own list of
+pools is not published — see [Pools](#pools).
+
+Everything from the directory is set as text, never as markup, and a link from
+it is only ever http(s), `mailto:` or `tel:` — checked when the page is read and
+again when it is drawn, since `lib/poolinfo.js` is a file someone could edit by
+hand. The file is 51 KB for twenty pools and ships to every pool page; it is
+written a line per row of hours so it diffs like one.
+
 ## History
 
 Every trip is timestamped, and the **History** panel lists them newest-first,
@@ -815,6 +887,12 @@ your count, and is a shared code rather than real per-user accounts.
   set of pools, so the app shows this year's card or last year's, not both.
   Older seasons stay in the history and the chart, but their own cost per trip
   is gone once the dates move on.
+- **A pool page is as current as its last fetch.** Hours and prices change and
+  nothing re-reads the directory on its own; the page names the day it was
+  read. Only the capital area has been fetched so far.
+- **Facilities are what the description happens to mention.** Sky Lagoon's
+  says nothing about a sauna, so its page lists none. The tags are right about
+  what they say and silent about the rest.
 - **A pool has to be in the list to be picked.** The ⚙ list is the built-in 107
   plus anywhere you have named on the spot. Somewhere you have never been and
   that `lib/pools.js` has never heard of cannot be ticked until a swim there
@@ -826,7 +904,8 @@ your count, and is a shared code rather than real per-user accounts.
 |---|---|
 | `index.html` `styles.css` `app.js` | the private read/write app |
 | `map.html` `map.js` | the map page — the private app only |
-| `public/` | the public read-only pages — the counter and the map |
+| `pool.html` `pool.js` | a pool's page — the private app only |
+| `public/` | the public read-only pages — the counter, the map and a pool's page |
 | `lib/state.js` | trips, settings and the break-even arithmetic |
 | `lib/api.js` | HTTP routing and validation, shared by both backends |
 | `lib/i18n.js` | Icelandic, English and Polish strings, plurals, dates, number formats |
@@ -834,6 +913,8 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
 | `lib/poolmap.js` | the two pool maps and the marks on them |
+| `lib/poolpage.js` | a pool's page and the map's list of them, shared by both pages |
+| `lib/poolinfo.js` | what sundlaugar.is says about each pool — generated, do not edit |
 | `lib/iceland.js` | the ISN93 / Lambert projection, the capital window and the map page's geometry |
 | `lib/coastline.js` | the two coastlines, country and capital — generated, do not edit |
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
@@ -842,6 +923,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
 | `bin/publish.mjs` | snapshot, build and deploy the public site |
 | `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from IS 50V, and check every pool is on land |
+| `bin/fetch-pool-info.mjs` | read sundlaugar.is a region at a time into `lib/poolinfo.js` |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |
 | `deploy/sund-publish.*` | publish the public snapshot every 15 min |
