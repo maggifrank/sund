@@ -232,7 +232,7 @@ making the count wait on a GPS fix, and a line under the counter says what it
 thinks — *You're at Laugardalslaug*, *No known pool nearby*, or *Location
 unavailable* — so it is never guessing behind your back.
 
-`lib/pools.js` carries the 126 pools listed at
+`lib/pools.js` carries the 127 pools listed at
 [sundlaugar.is](https://sundlaugar.is/sundlaugar/) that can be placed — from
 both its pool directory and the
 [natural pools](https://sundlaugar.is/heitar_laugar/) it keeps in a separate
@@ -247,7 +247,8 @@ better key. [`bin/survey-pools.mjs`](bin/survey-pools.mjs) reads it off the
 listing, geocodes it, and snaps to whatever pool OSM has within 500 m: the
 address says which building, OSM says where the water is. That placed the other
 45 — 41 on a surveyed position, and four at their address where OSM has no pool
-at all.
+at all. One more, Jaðarsbakkalaug, slipped past both and was placed by hand — see
+[Pool pages](#pool-pages).
 
 Five wild pools resisted both passes, listed without an address and unnamed in
 OSM, and they are **not in the list**. A pool that cannot be placed cannot be
@@ -315,14 +316,14 @@ happened.
 **Kort** — the 🗺 in the header — is the pool list as a picture: every pool the
 app knows about, drawn where it actually is, **filled green where you have swum
 and a hollow red ring where you have not**. The headline is the bare fraction,
-`23 / 126`, with a progress bar under it.
+`23 / 127`, with a progress bar under it.
 
 **Pools too close to draw apart share a badge.** A marker is about twelve
 kilometres across at the scale that fits Iceland into a phone column, so 82 of
 the 126 used to sit on top of another one — a red ring over a green disc, with
 no way to tap the one underneath. Overlapping marks are now merged, closest pair
 first, until nothing on the map overlaps anything else: at no zoom that leaves
-40 pools on their own and 20 badges. A badge says how many pools are in it, and
+39 pools on their own and 21 badges. A badge says how many pools are in it, and
 its ring is split to say how many of those have been swum in — green from twelve
 o'clock for the swum share, red for the rest, with a gap at each join so the
 split is a shape and not only a colour. It stands on its most central pool rather
@@ -363,7 +364,7 @@ a position, so it usually is — but a pool named at a check-in with no fix to
 hand has none, and cannot be drawn. The counter card then states how many are
 missing and the **Ófarnar laugar** list at the bottom carries them with a *not
 on the map* tag. The fraction counts every pool either way: a page that quietly
-drew 126 of 127 would be claiming a completeness it has not got.
+drew 127 of 128 would be claiming a completeness it has not got.
 
 The page is read-only and has nothing of its own to save. It draws the counter
 page's offline cache for the first paint — queue included, through the same
@@ -397,7 +398,7 @@ in `lib/pools.js` is a directory of Iceland's swimming pools, not a diary.
 
 A snapshot published before the rows carried an id cannot say which pools those
 swims were at. The page says so in a sentence and draws nothing, rather than
-putting a red ring on all 126 and claiming the swimming never happened.
+putting a red ring on all 127 and claiming the swimming never happened.
 
 ### How the country is drawn
 
@@ -440,7 +441,7 @@ simplification has put on the wrong side of the coast gets the coast around it
 held at full detail and is cut again. Four needed it — Flateyri, Hellulaug,
 Geosea and the tubs at Drangsnes, between 43 m and nothing at all offshore — for
 107 extra points, where holding every pool's neighbourhood at full detail costs
-4,500. The result is written into the header of `lib/coastline.js`: **0 of 126**
+4,500. The result is written into the header of `lib/coastline.js`: **0 of 127**
 in the sea on the country's outline, **0 of 21** on the capital's.
 
 **And checked again on every change.** The coast is cut rarely and the pool list
@@ -473,17 +474,32 @@ page, region by region, for when a mark is too small to hit.
 
 **The details come from [sundlaugar.is](https://sundlaugar.is)**, the national
 pool directory, read by [`bin/fetch-pool-info.mjs`](bin/fetch-pool-info.mjs)
-into `lib/poolinfo.js`. It is fetched **a region at a time**, and so far only
-the capital area has been — twenty pools, from Klébergslaug on Kjalarnes to
-Ásvallalaug in Hafnarfjörður, Sky Lagoon and the beach at Nauthólsvík among
-them. A pool elsewhere still has its page, with its count and its place on the
-map, and a line saying the directory's details are not in yet. Fetching the next
-region is one command, and leaves the regions already fetched alone:
+into `lib/poolinfo.js`. **Every region has been read: 126 of the 127 pools in
+`lib/pools.js` have the directory's details.** The one that does not is
+Ölduselslaug, which the directory no longer lists; its page has its count and
+its place on the map, and says the details are not in. Reading it again is one
+command, for the whole country or a region at a time, and a region not asked
+for is left as it is:
 
 ```bash
-node bin/fetch-pool-info.mjs --region reykjanes           # read it and print it
-node bin/fetch-pool-info.mjs --region reykjanes --write   # then write it
+node bin/fetch-pool-info.mjs --all             # read it and print it
+node bin/fetch-pool-info.mjs --all --write     # then write it
 ```
+
+The directory keeps its natural pools — Landbrotalaug, Reykjadalur, the tubs at
+Drangsnes — in a section of their own that its API does not serve, so those are
+listed from that section's sitemap instead. The sitemap mixes in the English
+copies under the same names and only the Icelandic ones are read. Two pools are
+in both sections, Hellulaug and the Blue Lagoon, and the pool directory's page
+wins. The five wild pools that were never placed are skipped by name.
+
+Reading the whole country turned up a pool the app had never had:
+**Jaðarsbakkalaug**, Akranes's own, in the directory since 2016. Both survey
+passes had missed it — its name there, "Jaðarsbakkalaug, Akranesi", matches
+nothing in OpenStreetMap, and its address snaps onto Guðlaug, the beach pool
+180 m below it, which the survey then drops as a duplicate. It is in the list
+now, at the position OSM gives it by name, and the coastline check puts it on
+land like the rest: **0 of 127** in the sea.
 
 **What is taken is what a swimmer acts on, and not the directory's writing.**
 Each pool's page there has a few paragraphs about it and a gallery; those are
@@ -491,7 +507,12 @@ somebody's work, and the page links to them instead of copying them. What the
 paragraphs *say* is read out of them as tags — "heitir pottar, kaldur pottur og
 eimbað" is hot tubs, a cold tub and a steam bath — which the page can name in
 all three languages. A tag is only ever added: a description that never mentions
-a cold tub is not taken as evidence there isn't one. The notes beside the hours
+a cold tub is not taken as evidence there isn't one, and a sentence about the
+neighbourhood — the restaurant down the road, the campsite — says nothing about
+the pool. The longest basin is read the same careful way: a length counts only
+when the nearest noun is a pool, because descriptions give the length of the
+slide, the sports hall and the drive from Reykjavík too, and taking the largest
+number once made Varmahlíð's 47 m slide its pool. The notes beside the hours
 and under the price table are kept word for word, because they are the terms the
 prices are sold on, and a paraphrase that got one wrong would be a price the
 pool does not charge.
@@ -509,15 +530,26 @@ looks like: a row of days and times, a heading, a season, a closure, or a note.
 It reads "Laugar- og sunnudaga" as two days rather than a range and "mánudaga
 til föstudaga" as one; it works out that "Vetraropnun" with no dates is the rest
 of the year beside a dated summer; it drops holiday hours headed with a year
-that has gone. Closures are the one thing the directory is worst at: in
+that has gone. It reads months cut short ("15. sept"), seasons that only say
+when they start ("hefst 1. júní"), end "til lok ágúst" or "til miðjan ágúst", or
+are nothing but months ("Apríl – Október"); and it keeps holidays — Christmas,
+Easter, National Day, which half the pools list with their own hours — out of
+the opening hours, as rows under their own heading with the directory's words
+for the day. Closures are the one thing the directory is worst at: in
 September, Laugardalslaug's page still said it was shut for maintenance in
 August. A closure that is over is dropped when the page is read, and one that
 is not carries its end date, so the pool page stops showing it the day after.
+One with no end at all — Reykholt's pool has been shut for renovation since
+September 2025, above a timetable that still reads as open — is shown in a box
+of its own, and the page does not claim the pool is open today.
 
 **Today is Iceland's today.** The row for today is highlighted in whichever block
 of hours is in force, and the top of the page says *Open today: 06:30–22:00* —
 but only when that can actually be said: one block of opening hours in force, one
-row in it for today, and no closure standing. Iceland keeps UTC all year, so the
+row in it for today, and no closure standing. A block of hours with no dates
+that calls itself summer or winter hours is never taken as today's: "Sumaropnun"
+with nothing to say when summer ends is a guess in September. Iceland keeps UTC
+all year, so the
 page takes the date and weekday from UTC, whatever the phone thinks its time
 zone is. It does not know about public holidays, which the directory lists
 inconsistently or not at all.
@@ -531,8 +563,9 @@ pools is not published — see [Pools](#pools).
 Everything from the directory is set as text, never as markup, and a link from
 it is only ever http(s), `mailto:` or `tel:` — checked when the page is read and
 again when it is drawn, since `lib/poolinfo.js` is a file someone could edit by
-hand. The file is 51 KB for twenty pools and ships to every pool page; it is
-written a line per row of hours so it diffs like one.
+hand. The file is 296 KB for 126 pools — 33 KB compressed — and ships to every
+pool page and the map; it is written a line per row of hours so it diffs like
+one.
 
 ## History
 
@@ -920,7 +953,7 @@ your count, and is a shared code rather than real per-user accounts.
   is gone once the dates move on.
 - **A pool page is as current as its last fetch.** Hours and prices change and
   nothing re-reads the directory on its own; the page names the day it was
-  read. Only the capital area has been fetched so far.
+  read.
 - **Facilities are what the description happens to mention.** Sky Lagoon's
   says nothing about a sauna, so its page lists none. The tags are right about
   what they say and silent about the rest.

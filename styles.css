@@ -1293,7 +1293,9 @@ table.hours {
 table.hours th,
 table.hours td { padding: 6px 8px; }
 table.hours th { text-align: left; font-weight: 500; color: var(--ink-dim); }
-table.hours td { text-align: right; }
+/* A time is one thing: "09:00–19:00" beside a long holiday name wraps the name,
+   not the hours. */
+table.hours td { text-align: right; white-space: nowrap; vertical-align: top; }
 table.hours tr + tr { border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 /* Today's row, in whichever block is in force. Weight as well as a tint, so it
    is not only a colour saying which row it is. */
