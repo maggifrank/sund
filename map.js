@@ -13,6 +13,8 @@ import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
 import {
   poolRows, placeable, mapHTML, mapSignature, bindMapTooltip, CAPITAL
 } from './lib/poolmap.js';
+import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
+import { poolHref } from './lib/pools.js';
 import { attachTapHaptics } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
@@ -88,7 +90,8 @@ const ui = {
   back: el('back'), langSelect: el('lang-select'),
   visited: el('visited'), progressFill: el('progress-fill'), offMap: el('off-map'),
   country: el('country'), capital: el('capital'),
-  todoToggle: el('todo-toggle'), todoPanel: el('todo-panel'), todoSummary: el('todo-summary')
+  todoToggle: el('todo-toggle'), todoPanel: el('todo-panel'), todoSummary: el('todo-summary'),
+  pagesToggle: el('pages-toggle'), pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary')
 };
 
 /* ---------- language ---------- */
@@ -118,6 +121,7 @@ function setLang(next) {
   applyStaticStrings();
   mapSig = null;          // the tooltips are written in words; force a rebuild
   todoSig = null;
+  pagesSig = null;
   render();
 }
 
@@ -131,8 +135,21 @@ function renderMaps(rows) {
   mapSig = sig;
   /* The country first, carrying the rectangle that says where the second one is
      looking; then the capital area at the scale the capital needs. */
-  ui.country.innerHTML = mapHTML(lang, rows, { locator: CAPITAL, ariaKey: 'map.countryAria' });
-  ui.capital.innerHTML = mapHTML(lang, rows, { win: CAPITAL, ariaKey: 'map.capitalAria' });
+  const href = (row) => poolHref(row.id);
+  ui.country.innerHTML = mapHTML(lang, rows, { locator: CAPITAL, ariaKey: 'map.countryAria', href });
+  ui.capital.innerHTML = mapHTML(lang, rows, { win: CAPITAL, ariaKey: 'map.capitalAria', href });
+}
+
+/* ---------- pool pages ---------- */
+
+let pagesSig = null;
+
+function renderPages(rows) {
+  ui.pagesSummary.textContent = plural(lang, POOLS_WITH_PAGES, 'pool');
+  const sig = mapSignature(lang, rows);
+  if (ui.pagesPanel.hidden || sig === pagesSig) return;
+  pagesSig = sig;
+  renderRegionList(ui.pagesPanel, lang, rows);
 }
 
 /* ---------- what is left ---------- */
@@ -202,6 +219,7 @@ function render() {
 
   renderMaps(rows);
   renderTodo(rows);
+  renderPages(rows);
 }
 
 /* ---------- wiring ---------- */
@@ -221,6 +239,13 @@ ui.todoToggle.addEventListener('click', () => {
   if (open) { todoSig = null; render(); }
 });
 
+ui.pagesToggle.addEventListener('click', () => {
+  const open = ui.pagesPanel.hidden;
+  ui.pagesPanel.hidden = !open;
+  ui.pagesToggle.setAttribute('aria-expanded', String(open));
+  if (open) { pagesSig = null; render(); }
+});
+
 /* ---------- start ---------- */
 
 ui.langSelect.value = lang;
@@ -231,6 +256,7 @@ bindMapTooltip(ui.capital);
    here that can be pressed. */
 attachTapHaptics(ui.back, { radius: '10px' });
 attachTapHaptics(ui.todoToggle, { radius: 'var(--radius)', fill: 'block' });
+attachTapHaptics(ui.pagesToggle, { radius: 'var(--radius)', fill: 'block' });
 loadCache();
 render();
 poll({ force: true });

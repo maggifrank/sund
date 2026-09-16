@@ -15,6 +15,8 @@ import {
   poolRowsFromTotals, totalsIdentifyPools, placeable,
   mapHTML, mapSignature, bindMapTooltip, CAPITAL
 } from './lib/poolmap.js';
+import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
+import { poolHref } from './lib/pools.js';
 
 const LANG_KEY = 'sund.lang';
 
@@ -32,7 +34,9 @@ const ui = {
   capitalCard: el('capital-card'), capital: el('capital'),
   noSnapshot: el('no-snapshot'),
   todoCard: el('todo-card'), todoToggle: el('todo-toggle'),
-  todoPanel: el('todo-panel'), todoSummary: el('todo-summary')
+  todoPanel: el('todo-panel'), todoSummary: el('todo-summary'),
+  pagesCard: el('pages-card'), pagesToggle: el('pages-toggle'),
+  pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary')
 };
 
 /* ---------- language ---------- */
@@ -59,6 +63,7 @@ function setLang(next) {
   applyStaticStrings();
   mapSig = null;          // the tooltips are written in words; force a rebuild
   todoSig = null;
+  pagesSig = null;
   render();
 }
 
@@ -70,8 +75,21 @@ function renderMaps(rows) {
   const sig = mapSignature(lang, rows);
   if (sig === mapSig) return;
   mapSig = sig;
-  ui.country.innerHTML = mapHTML(lang, rows, { locator: CAPITAL, ariaKey: 'map.countryAria' });
-  ui.capital.innerHTML = mapHTML(lang, rows, { win: CAPITAL, ariaKey: 'map.capitalAria' });
+  const href = (row) => poolHref(row.id);
+  ui.country.innerHTML = mapHTML(lang, rows, { locator: CAPITAL, ariaKey: 'map.countryAria', href });
+  ui.capital.innerHTML = mapHTML(lang, rows, { win: CAPITAL, ariaKey: 'map.capitalAria', href });
+}
+
+/* ---------- pool pages ---------- */
+
+let pagesSig = null;
+
+function renderPages(rows) {
+  ui.pagesSummary.textContent = plural(lang, POOLS_WITH_PAGES, 'pool');
+  const sig = mapSignature(lang, rows);
+  if (ui.pagesPanel.hidden || sig === pagesSig) return;
+  pagesSig = sig;
+  renderRegionList(ui.pagesPanel, lang, rows);
 }
 
 /* ---------- what is left ---------- */
@@ -123,7 +141,7 @@ function render() {
      the country under a red ring and claim the swimming never happened, which
      is worse than an empty page by some distance. */
   const known = totalsIdentifyPools(snapshot.poolTable);
-  for (const card of [ui.visitedCard, ui.countryCard, ui.capitalCard, ui.todoCard]) {
+  for (const card of [ui.visitedCard, ui.countryCard, ui.capitalCard, ui.todoCard, ui.pagesCard]) {
     card.hidden = !known;
   }
   ui.noSnapshot.hidden = known;
@@ -147,6 +165,7 @@ function render() {
 
   renderMaps(rows);
   renderTodo(rows);
+  renderPages(rows);
 }
 
 /* ---------- wiring ---------- */
@@ -164,6 +183,13 @@ ui.todoToggle.addEventListener('click', () => {
   ui.todoPanel.hidden = !open;
   ui.todoToggle.setAttribute('aria-expanded', String(open));
   if (open) { todoSig = null; render(); }
+});
+
+ui.pagesToggle.addEventListener('click', () => {
+  const open = ui.pagesPanel.hidden;
+  ui.pagesPanel.hidden = !open;
+  ui.pagesToggle.setAttribute('aria-expanded', String(open));
+  if (open) { pagesSig = null; render(); }
 });
 
 /* ---------- start ---------- */

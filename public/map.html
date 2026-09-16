@@ -70,6 +70,17 @@
     <div id="todo-panel" hidden></div>
   </section>
 
+  <!-- Every pool with a page of its own, by region: the way to them that does
+       not depend on hitting a mark on a map with a thumb. -->
+  <section id="pages-card" class="card history map-pages" hidden>
+    <button id="pages-toggle" class="disclosure" aria-expanded="false" aria-controls="pages-panel">
+      <span class="label" data-i18n="map.pagesLabel"></span>
+      <span id="pages-summary" class="sub"></span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div id="pages-panel" hidden></div>
+  </section>
+
   <p class="rate-note" data-i18n="public.readonly"></p>
 
 </main>

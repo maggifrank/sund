@@ -119,6 +119,8 @@ const COPY = [
   ['public/app.js', 'app.js'],
   ['public/map.html', 'map.html'],
   ['public/map.js', 'map.js'],
+  ['public/pool.html', 'pool.html'],
+  ['public/pool.js', 'pool.js'],
   ['lib/state.js', 'lib/state.js'],
   ['lib/i18n.js', 'lib/i18n.js'],
   ['lib/money.js', 'lib/money.js'],
@@ -126,6 +128,8 @@ const COPY = [
   ['lib/pools.js', 'lib/pools.js'],
   ['lib/pooltable.js', 'lib/pooltable.js'],
   ['lib/poolmap.js', 'lib/poolmap.js'],
+  ['lib/poolpage.js', 'lib/poolpage.js'],
+  ['lib/poolinfo.js', 'lib/poolinfo.js'],
   ['lib/iceland.js', 'lib/iceland.js'],
   ['lib/coastline.js', 'lib/coastline.js']
 ];
