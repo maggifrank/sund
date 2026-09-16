@@ -91,27 +91,42 @@ body {
 /* The phone layout above is the base and nothing here touches it: one column,
    480px, tiles in the order they are written. A laptop was getting that same
    column with 900px of empty page either side of it and a metre of scrolling,
-   so from 760px up the tiles are dealt into a grid instead.
+   so from 760px up the dashboard becomes a board.
 
-   Grid areas and not a reordered document: every tile stays exactly where it
-   is in the markup, so the reading order a screen reader and the tab key
-   follow is still counter → cost → break-even → stats → charts → pools →
-   history, whichever column the eye finds them in. */
+   Columns and not a grid. A grid lines the tiles up in rows, and these tiles
+   are nothing like the same height — the cost card is three lines beside a
+   counter that is eight — so every row paid for its alignment with a hole
+   either inside the short tile or underneath it. Column flow packs each
+   column tight and lets the columns end where they end, which puts the only
+   slack at the foot of the board instead of four times in the middle of it.
+
+   Two columns and not three, at every width. Column flow fills in document
+   order, so a column can only ever be a run of consecutive tiles, and no
+   three consecutive runs of these seven come out even: the best split leaves
+   233px of one column empty. Split in two it is 84px, at the bottom, where
+   nothing reads it as a fault. Three columns was worth less than that. */
 
 @media (min-width: 760px) {
   .app { max-width: 760px; }
 
   .app--dash {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "head    head"
-      "counter hero"
-      "break   stats"
-      "chart   weekday"
-      "pools   pools"
-      "history history";
+    display: block;
+    columns: 2;
+    column-gap: 14px;
   }
+  /* A tile is one object: it moves to the next column whole or not at all. */
+  .app--dash > * { break-inside: avoid; margin-bottom: 14px; }
+  /* The three that belong to the whole board rather than to a column. Each is
+     a spanner, so the columns above it balance among themselves and the
+     columns below start again underneath. */
+  .app--dash > .head,
+  .app--dash > .history,
+  .app--dash > .rate-note { column-span: all; }
+
+  /* Half of a 1200px board is 593px, and the count row sets its minus and plus
+     against its own edges — left to itself the two of them end up a hand's
+     width apart with the number stranded in between. */
+  .app--dash .count-row { max-width: 420px; }
 
   .app--map {
     display: grid;
@@ -122,21 +137,6 @@ body {
       "country capital"
       "history history";
   }
-
-  /* Tiles in a row are as tall as the tallest of them, so the short ones come
-     out with height to spare. The label stays at the top edge where a label
-     belongs and the last line stays at the bottom; the spare height goes
-     around the thing you are actually looking at, instead of collecting in a
-     pool underneath it. */
-  .app--dash .counter,
-  .app--dash .hero,
-  .app--dash .chart-card {
-    display: flex;
-    flex-direction: column;
-  }
-  .app--dash .count-row,
-  .app--dash .hero-value,
-  .app--dash .chart { margin-block: auto; }
 
   /* The lists that open along the whole bottom edge. Their rows are four short
      fields — a number, a date, a pool, a delete — and stretched across 1200px
@@ -158,44 +158,19 @@ body {
   .app--dash .weekday-pie { flex: 0 1 155px; }
 }
 
-/* Room for a third column, which is where the counter stops sharing a row and
-   takes the whole left edge: the one tile you came to press stays the tallest
-   thing on the page.
-
-   Nothing spans two columns here. The month chart is a fixed 320x168 viewBox
-   scaled to its container, so every column it gains it pays for in height — at
-   the full 1200px it stands 630px tall and swallows the page. One column is
-   the width where it lands at the size it was drawn for, and the pie beside it
-   never grows past its own 344px either. */
+/* Wider tiles rather than more of them, for the reason in the note above. */
 @media (min-width: 1180px) {
   .app { max-width: 1200px; }
-
-  .app--dash {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-areas:
-      "head    head    head"
-      "counter hero    break"
-      "counter stats   stats"
-      "chart   weekday pools"
-      "history history history";
-  }
 }
 
-/* The names the two boards above are dealt into. Outside those media queries
-   they mean nothing, so the phone column ignores every one of them. */
+/* The names the map's board is dealt into — the dashboard flows in columns and
+   places nothing by name. Outside that media query they mean nothing, so the
+   phone column ignores them. */
 .head           { grid-area: head; }
 .counter        { grid-area: counter; }
-.hero           { grid-area: hero; }
-.card--breakeven { grid-area: break; }
-.grid           { grid-area: stats; }
-.chart-card     { grid-area: chart; }
-.card--weekday  { grid-area: weekday; }
-.card--pools    { grid-area: pools; }
 .history        { grid-area: history; }
-/* Not a named area: the public snapshot ends in two of these, one under the
-   other, and two items sent to the same name would be dealt the same cell and
-   print on top of each other. A full-width span takes a row of its own
-   however many there turn out to be. */
+/* The public snapshot ends in two of these, one under the other. On the map's
+   grid a full-width span gives each a row of its own. */
 .rate-note      { grid-column: 1 / -1; }
 .map-card--country { grid-area: country; }
 .map-card--capital { grid-area: capital; }
