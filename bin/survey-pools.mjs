@@ -74,7 +74,10 @@ const HINT = {
      "Snæfellsnes" is a whole peninsula, and nothing geocodes "Vestmannaeyjum".
      Both name a place in the nominative instead, and the snap does the rest. */
   'lysulaugar': 'Lýsuhóll',
-  'vestmannaeyjar': 'Vestmannaeyjabær'
+  'vestmannaeyjar': 'Vestmannaeyjabær',
+  /* "Við Innnesveg, Akranesi" is "by" a street, in the dative, and nothing
+     geocodes it. The street itself does, and the pool is on it. */
+  'jadarsbakkalaug-akranesi': 'Innnesvegur, Akranes'
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

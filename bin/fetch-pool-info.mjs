@@ -70,7 +70,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
    earlier, calls it another. Keyed by the directory's name. Kept as short as
    it can be: a pool that matches by name needs nothing here. */
 const ALIAS = {
-  'Kópavogslaug': 'sundlaug-kopavogs'
+  'Kópavogslaug': 'sundlaug-kopavogs',
+  /* The natural pools section's name for it; the pool directory calls it Blue
+     Lagoon, which is what lib/pools.js took. */
+  'Bláa Lónið': 'blue-lagoon'
 };
 
 /* ---------- fetching ---------- */
@@ -160,15 +163,23 @@ const safeUrl = (href) => {
 
 /* ---------- reading one pool ---------- */
 
-const MONTHS = ['janúar', 'febrúar', 'mars', 'apríl', 'maí', 'júní', 'júlí', 'ágúst', 'september', 'október', 'nóvember', 'desember'];
+/* A month as the directory writes one: in full, or cut short — "15. sept",
+   "15. okt", "31. mai" without its accent. Longest first, so "mars" is not
+   read as "mar" with an s left over. */
+const MONTH = String.raw`(janúar|jan|febrúar|feb|mars|mar|apríl|apr|maí|mai|júní|jún|jun|júlí|júl|jul|ágúst|ágú|ág|september|sept|sep|október|okt|nóvember|nóv|nov|desember|des)\.?(?!\p{L})`;
+const MONTH_OF = [['jan', 1], ['feb', 2], ['mar', 3], ['apr', 4], ['ma', 5], ['jún', 6], ['jun', 6], ['júl', 7], ['jul', 7], ['ág', 8], ['sep', 9], ['okt', 10], ['nóv', 11], ['nov', 11], ['des', 12]];
+const monthOf = (word) => MONTH_OF.find(([stem]) => word.toLowerCase().startsWith(stem))[1];
+
 /* A date the way the directory writes one, "1. október". The full stop is
-   usually there and sometimes forgotten: Árbæjarlaug was closed "til 15 júní". */
-const DATE = String.raw`(\d{1,2})\.?\s*(${MONTHS.join('|')})`;
-const SPAN = new RegExp(`${DATE}\\s*(?:til|[-–—])\\s*${DATE}`, 'i');
-const FROM = new RegExp(`frá\\s*${DATE}`, 'i');
-const UNTIL = new RegExp(`(?:til|[-–—])\\s*${DATE}`, 'i');
-const monthDay = (day, month) =>
-  `${String(MONTHS.indexOf(month.toLowerCase()) + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+   usually there and sometimes forgotten — Árbæjarlaug was closed "til 15 júní" —
+   and a season can run "til miðjan ágúst", the 15th, or "til lok ágúst", the
+   31st. Three groups: the day, the word instead of one, and the month. */
+const DATE = String.raw`(?:(\d{1,2})\.?|(miðjan|lok))\s*${MONTH}`;
+const SPAN = new RegExp(`${DATE}\\s*(?:til|[-–—])\\s*${DATE}`, 'iu');
+const FROM = new RegExp(`(?:frá|hefst)\\s*${DATE}`, 'iu');
+const UNTIL = new RegExp(`(?:til|[-–—])\\s*${DATE}`, 'iu');
+const ONLY_MONTH = new RegExp(`^${MONTH}$`, 'iu');
+const pad = (n) => String(n).padStart(2, '0');
 /* A month-day moved by whole days, through a leap year so that the day before
    1 March is 29 February rather than a date that does not exist in some other
    year's reading of it. */
@@ -178,6 +189,14 @@ const shiftDay = (md, by) => {
 };
 const dayBefore = (md) => shiftDay(md, -1);
 const dayAfter = (md) => shiftDay(md, 1);
+const lastOf = (month) => dayBefore(`${pad(month % 12 + 1)}-01`);
+
+/* The month-day of a date DATE matched, from its three groups at `i`. */
+function dateAt(m, i) {
+  const [day, word, month] = [m[i], m[i + 1], m[i + 2]];
+  if (word?.toLowerCase() === 'lok') return lastOf(monthOf(month));
+  return `${pad(monthOf(month))}-${pad(day ?? 15)}`;
+}
 
 /* Icelandic letters are not word characters to a JavaScript regex, so a \b
    after "lokað" never matches — the ð and the end of the line are both
@@ -186,11 +205,17 @@ const dayAfter = (md) => shiftDay(md, 1);
 const CLOSED = /^lokað(?!\p{L})/iu;
 const CLOSURE = /(?<!\p{L})lok(uð|að)(?!\p{L})/iu;
 
-/* getDay() numbering, Sunday 0, the index lib/i18n.js names days by. Matched
-   on the stem, because the directory writes a day in whatever case the
-   sentence around it wanted: mánudaga, mánudagar, mánudögum. */
-const DAY_STEMS = [['sunnu', 0], ['mánu', 1], ['þriðju', 2], ['miðviku', 3], ['fimmtu', 4], ['föstu', 5], ['laugar', 6]];
-const dayOf = (word) => DAY_STEMS.find(([stem]) => word.startsWith(stem))?.[1] ?? null;
+/* getDay() numbering, Sunday 0, the index lib/i18n.js names days by. A day is
+   written in whatever case the sentence around it wanted — mánudaga, mánudögum
+   — or cut short, "mán" or "mánud.", so it is matched as a stem and then as
+   nothing but the rest of a day's name: "sundlaug" starts like Sunday and is
+   not one. */
+const DAY = /^(sunnu|sun|mánu|mán|þriðju|þri|miðviku|mið|fimmtu|fim|föstu|fös|laugar|lau)(dag\p{L}*|dög\p{L}*|d)?$/u;
+const DAY_OF = { sun: 0, mán: 1, þri: 2, mið: 3, fim: 4, fös: 5, lau: 6 };
+const dayOf = (word) => {
+  const m = word.replace(/^\.+|\.+$/g, '').match(DAY);
+  return m ? DAY_OF[m[1].slice(0, 3)] : null;
+};
 
 /* "Mánudaga – föstudaga", "Laugar- og sunnudaga", "Helgar", "Virka daga" — the
    set of days a line of hours applies to, or null when it is not a set of days
@@ -198,7 +223,7 @@ const dayOf = (word) => DAY_STEMS.find(([stem]) => word.startsWith(stem))?.[1] ?
    rather than a guess in three languages. */
 function parseDays(label) {
   let s = label.toLowerCase().replace(/\s+/g, ' ').trim();
-  if (/^(alla daga|daglega)$/.test(s)) return [0, 1, 2, 3, 4, 5, 6];
+  if (/^(alla daga|allir dagar|daglega)$/.test(s)) return [0, 1, 2, 3, 4, 5, 6];
   if (/^virk(ir|a|um) dag(ar|a|ur)?$/.test(s)) return [1, 2, 3, 4, 5];
   if (/^helg(ar|i|um|ina)$/.test(s)) return [0, 6];
   /* A dash in front of "og" is a shared suffix, not a range: "laugar- og
@@ -235,31 +260,60 @@ function timeOf(value) {
   return { closed: false, times, extra: extra || null };
 }
 
+/* Holidays, which half the pools list with their own hours: Christmas, Easter,
+   the first day of summer, National Day. They are not the pool's hours for any
+   day of the week, so a block of them is never read as its opening hours. */
+const HOLIDAY = /jól|áramót|páska|frídag|hátíð|nýárs|gamlárs|aðfanga|skírdag|uppstigning|þorláks|sumardagurinn|hvítasunnu|rauðir dagar|verslunarmanna|langi|verkalýðs|17\.? júní/iu;
+
 /* What a block of hours is about, from its heading. Opening hours are the
    default: a page that starts straight in on "Mánudaga: 06:30 – 22:00" means
-   the pool's own, and so does a heading that is nothing but a season. A gym's
-   hours are the gym's, even under "Opnunartími". */
+   the pool's own, and so does a heading that is nothing but a season or names
+   the pool itself. A gym's hours are the gym's, even under "Opnunartími". */
 const blockKind = (heading, season) =>
-  /leikfimi/i.test(heading) ? 'aqua'
-    : /gym|heilsu|líkamsrækt|fitness/i.test(heading) ? 'other'
-    : season || /opnun|opið|afgreiðslu|vetur|vetrar|vor\b|sumar|haust/i.test(heading) ? 'open'
+  /leikfimi/iu.test(heading) ? 'aqua'
+    : HOLIDAY.test(heading) ? 'other'
+    : /^(sundlaug|útilaug|innilaug|innisundlaug)/iu.test(heading) ? 'open'
+    : /gym|heilsu|líkamsrækt|fitness|þreksal|tækjasal/iu.test(heading) ? 'other'
+    : season || /opnun|opið|afgreiðslu|vetur|vetrar|vor(?!\p{L})|sumar|haust/iu.test(heading) ? 'open'
     : 'other';
 
+/* A season from a line: a span of dates, a start alone ("frá 7. júní", "hefst
+   1. júní"), or nothing but months — "Apríl – Október", "Október, nóvember og
+   desember" — which run from the first of the first to the last of the last. */
 const seasonOf = (s) => {
   const span = s.match(SPAN);
-  if (span) return { from: monthDay(span[1], span[2]), to: monthDay(span[3], span[4]) };
+  if (span) return { from: dateAt(span, 1), to: dateAt(span, 4) };
   const from = s.match(FROM);
-  return from ? { from: monthDay(from[1], from[2]), to: null } : null;
+  if (from) return { from: dateAt(from, 1), to: null };
+  const months = s.toLowerCase().split(/\s*(?:[-–—,:]|\s+og\s+|\s+til\s+)\s*/).filter(Boolean);
+  if (months.length && months.every((m) => ONLY_MONTH.test(m))) {
+    const first = monthOf(months[0]);
+    const last = monthOf(months.at(-1));
+    return { from: `${pad(first)}-01`, to: lastOf(last) };
+  }
+  return null;
+};
+
+/* A label that is nothing but a span of dates, which some lagoons give each
+   line of their hours instead of days of the week: "15. júní – 20. ágúst:
+   07:00 – 23:00". */
+const seasonLabel = (label) => {
+  const span = label.match(SPAN);
+  return span && label.replace(SPAN, '').replace(/[\s,.:;–-]/g, '') === ''
+    ? { from: dateAt(span, 1), to: dateAt(span, 4) }
+    : null;
 };
 
 /* The day a closure ends, as a whole date. The directory gives the day and the
    month, so the year is worked out: this one, unless the closure runs over New
-   Year and has already begun. */
+   Year and has already begun. A closure on one day — "lokuð 22. maí frá 08:00
+   til 13:00" — ends that day. */
+const ONE_DATE = new RegExp(DATE, 'iu');
+
 function closureEnd(line) {
   const span = line.match(SPAN);
-  const [day, month] = span ? [span[3], span[4]] : line.match(UNTIL).slice(1, 3);
-  const to = monthDay(day, month);
-  const from = span ? monthDay(span[1], span[2]) : null;
+  const to = span ? dateAt(span, 4) : dateAt(line.match(UNTIL) ?? line.match(ONE_DATE), 1);
+  const from = span ? dateAt(span, 1) : null;
   let year = Number(TODAY.slice(0, 4));
   if (from && to < from && TODAY.slice(5) >= from) year += 1;
   return `${year}-${to}`;
@@ -273,21 +327,38 @@ function readHours(html) {
   const blocks = [];
   let block = { kind: 'open', title: null, season: null, rows: [], notes: [] };
 
-  for (const line of lines(html)) {
+  for (const raw of lines(html)) {
+    /* Years are taken out before anything is read, and kept aside for the one
+       check that needs them: "24. ágúst (2026) til 21. maí (2027)" is a span
+       of dates with two numbers in the way. */
+    const years = raw.match(/\b20\d\d\b/g) ?? [];
+    /* "09 :00" is a typo for a time, and "opið 09:00 – 19:00" is a time that
+       says it is open; both are read as the time. */
+    const line = raw.replace(/\s*\(?\b20\d\d\b\)?/g, '')
+      .replace(/(\d)\s+:(\d)/g, '$1:$2')
+      .replace(/([:;–-]\s*)opið\s+(?=(kl\.?\s*)?\d{1,2}[:.]\d{2})/giu, '$1')
+      .trim();
+    if (!line) continue;
     /* "Mánudaga – föstudaga: 06:30 – 22:00", "17. júní: 09:00 – 18:00". The
        label runs to the first colon that has a time or "lokað" after it, which
-       is what stops the colon inside a time from being taken for its end. */
-    const row = line.match(/^(.{1,40}?)\s*[:;]\s*((?:kl\.?\s*)?\d{1,2}[:.]\d{2}.*|lokað.*)$/iu);
+       is what stops the colon inside a time from being taken for its end.
+       Holidays are as often written without the colon — "Páskadagur – lokað",
+       "23. des Þorláksmessa 06:45 – 18:00" — and are rows too, but only with a
+       whole span of hours or a "lokað" after them: a sentence with a time in
+       it is not a line of hours. */
+    const row = line.match(/^(.{1,50}?)\s*[:;]\s*((?:kl\.?\s*)?\d{1,2}[:.]\d{2}.*|lokað.*)$/iu) ??
+                line.match(/^(\D{2,50}?|\d{1,2}\.?\s*\p{L}.{0,45}?)\s+(?:[–-]\s+)?((?:kl\.?\s*)?\d{1,2}[:.]\d{2}\s*[-–—]\s*\d{1,2}[:.]\d{2}.*|lokað(?!\p{L}).*)$/iu);
     const time = row && timeOf(row[2]);
     if (time) {
-      block.rows.push({ label: row[1].trim(), days: parseDays(row[1]), ...time });
+      const days = parseDays(row[1]);
+      block.rows.push({ label: row[1].trim(), days, season: days ? null : seasonLabel(row[1]), ...time });
       continue;
     }
     /* A time with nothing in front of it: Sky Lagoon's autumn is one line,
        "09:00 – 22:00", under a heading that says which autumn. */
     const bare = timeOf(line);
     if (bare && !bare.closed && bare.times.some((t) => t.includes('–'))) {
-      block.rows.push({ label: null, days: null, ...bare });
+      block.rows.push({ label: null, days: null, season: null, ...bare });
       continue;
     }
     /* A date span on a line of its own belongs to the heading above it. */
@@ -301,24 +372,38 @@ function readHours(html) {
        directory leaves them up for months, and Laugardalslaug's page still said
        in September that it was shut for maintenance in August. One that is not
        keeps its date, so the page can stop showing it once it is. */
-    if (CLOSURE.test(line) && UNTIL.test(line)) {
+    const ends = UNTIL.test(line) || (ONE_DATE.test(line) && !FROM.test(line));
+    if (CLOSURE.test(line) && ends && !HOLIDAY.test(line)) {
       const until = closureEnd(line);
-      if (until >= TODAY) block.notes.push({ text: line, until });
+      if (until >= TODAY) block.notes.push({ text: raw, until });
       continue;
     }
-    /* A heading: a colon at the end, or short and not a sentence. */
-    if (/:$/.test(line) || (line.length <= 45 && line.split(/\s+/).length <= 6 && !/[.!?]$/.test(line))) {
+    /* A heading: a colon at the end, short and not a sentence, or a season
+       with its dates however long it runs to — Hella's "Sumaropnun 23. maí
+       til 23. ágúst 2026" is seven words, and read as a note it left summer
+       and winter hours in one block, both of them marked as today's. */
+    const namesSeason = seasonOf(line) && /opnun|opið|sumar|vetur|vetrar|vor(?!\p{L})|haust/iu.test(line);
+    /* And a word or two with a full stop after them, "Vetraropnun.", is a
+       heading that happened to be typed like a sentence. */
+    const short = line.length <= 45 && line.split(/\s+/).length <= 6 && !/[.!?]$/.test(line);
+    const clipped = /^\p{L}+(\s\p{L}+)?\.$/u.test(line);
+    if (/:$/.test(line) || namesSeason || short || clipped) {
       blocks.push(block);
-      const title = line.replace(/[:\s]+$/, '');
-      const own = seasonOf(title);
-      block = { kind: blockKind(title, own), title, season: own, rows: [], notes: [] };
+      const title = raw.replace(/[:.\s]+$/, '');
+      const own = seasonOf(line);
+      block = { kind: blockKind(line, own), title, season: own, rows: [], notes: [] };
       /* A heading dated to a year that has gone is a block that has too.
          Lágafellslaug's page still carries "Rauðir dagar sumarið 2025". */
-      const year = title.match(/\b(20\d\d)\b/)?.[1];
-      if (year && year < TODAY.slice(0, 4)) block.stale = true;
+      if (years.length && years.every((y) => y < TODAY.slice(0, 4))) block.stale = true;
       continue;
     }
-    block.notes.push({ text: line });
+    /* A closure with no date to end on — "Sundlaugin Reyðarfirði er lokuð." —
+       is kept as a note, and flagged so the page can make it hard to miss. It
+       has to say the pool *is* shut: Akranes's lanes "geta verið lokuð" during
+       school swimming, and being shut on Christmas Day is not that kind of
+       closure either. */
+    const shut = /(?<!\p{L})er\s+lok(uð|að)(?!\p{L})/iu.test(line) && !HOLIDAY.test(line);
+    block.notes.push(shut ? { text: raw, closure: true } : { text: raw });
   }
   blocks.push(block);
 
@@ -358,8 +443,22 @@ function readPrices(html) {
     [...tr[0].matchAll(/<t([hd])[^>]*>([\s\S]*?)<\/t\1>/gi)].map((cell) => text(cell[2])));
   if (!grid.length) return null;
 
-  const [head, ...body] = grid;
+  let [head, ...body] = grid;
   const year = /^\d{4}$/.test(head[0]) ? head[0] : null;
+  /* Columns headed with a period rather than a ticket — Laugarvatn Fontana's
+     are "01.06.2023-31.05.2024" and "01.06.2024-31.05.2025" — are prices for
+     that period, and one that has ended is dropped. A table with nothing left
+     is no table. */
+  const ended = head.map((cell, i) => {
+    const m = i > 0 && cell.match(/\d{1,2}\.\d{1,2}\.\d{4}\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` < TODAY : false;
+  });
+  if (ended.some(Boolean)) {
+    const live = (row) => row.filter((_, i) => !ended[i]);
+    head = live(head);
+    body = body.map(live);
+    if (head.length < 2) return null;
+  }
   const sections = [{ head: head.slice(1), rows: [] }];
   let broken = false;
   for (const row of body) {
@@ -422,20 +521,48 @@ const CORRECTIONS = {
 };
 
 /* The longest basin, in metres, from however the description happens to put
-   it: "50m x 22m", "12,5 x 25 metra", "25 metrar að lengd". A width is never
-   longer than its length, so the largest figure in the plausible range is the
-   answer even when widths are in there too. Depths and heights are single
-   digits or decimals below ten and fall outside it, and so does an 86 m slide.
-   A span of lengths is a span of something else — Lágafellslaug's slides are
-   "frá 33-43 metrum" — and is taken out before anything is read. */
-function longestBasin(description) {
+   it: "50m x 22m", "12,5 x 25 metra", "Útilaugin er 25 metra löng". A width is
+   never longer than its length, so the largest figure is the answer even when
+   widths are in there too.
+
+   A length only counts when the thing it measures is a pool. Descriptions give
+   the length of everything: Varmahlíð's slide is "47 metra löng", Bolungarvík's
+   sports hall "22 x 28 metrar", and Hvammsvík is "45 mínútna" from Reykjavík.
+   Taking the largest number in range put all three down as the longest pool. So
+   each figure is read with the words around it, and kept only when the nearest
+   noun is a pool — "laug" in any of its forms, útilaug, vaðlaug, sundlaugin —
+   rather than a slide, a hall, a pitch or a tower. A span of lengths is a span
+   of something else, Lágafellslaug's slides "frá 33-43 metrum", and goes first.
+   The 10–50 m range stays as the last word: a 57 m slide beside the word
+   "útisundlaug" is still not a pool. */
+const POOL_WORD = /laug/giu;
+const OTHER_WORD = /rennibraut|sal(ur|ar|num|inn)?(?!\p{L})|völl|vell|turn|pott|braut(?!\p{L})|hús(?!\p{L})/giu;
+
+function nearest(text, re, at) {
+  let best = Infinity;
+  for (const m of text.matchAll(re)) {
+    const d = m.index >= at ? m.index - at : at - (m.index + m[0].length);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+function longestBasin(units) {
   const found = [];
-  let rest = description.replace(/\d+\s*[-–]\s*\d+\s*(?:m\b|metr)/gi, ' ');
-  rest = rest.replace(
-    /(\d+(?:[,.]\d+)?)\s*m?\s*[x×]\s*(\d+(?:[,.]\d+)?)\s*(?:m\b|metr)/gi,
-    (_, a, b) => { found.push(a, b); return ' '; }
-  );
-  for (const m of rest.matchAll(/(?<![\d,.])(\d{2}(?:[,.]\d+)?)\s?(?:m\b|metr)/gi)) found.push(m[1]);
+  /* "m" and nothing after it: not "mínútna", and not the m² of Blönduós's
+     paddling pool, "41.2 m2". */
+  const LENGTH = /(?<![\d,.])(\d+(?:[,.]\d+)?)(?:\s*m?\s*[x×]\s*(\d+(?:[,.]\d+)?))?\s*(?:m(?![\p{L}\d²³])|metr\p{L}*)/giu;
+  /* Within one sentence of one line: Sandgerði lists "Æfingasalur. 25 m
+     Sundlaug.", and the hall in the sentence before is not what the 25 m is. */
+  for (const unit of units) {
+    const text = unit.replace(/\d+\s*[-–]\s*\d+\s*(?:m(?!\p{L})|metr)/giu, ' ');
+    for (const m of text.matchAll(LENGTH)) {
+      const at = m.index + m[0].length / 2;
+      if (nearest(text, POOL_WORD, at) > 60) continue;
+      if (nearest(text, OTHER_WORD, at) < nearest(text, POOL_WORD, at)) continue;
+      found.push(m[1], ...(m[2] ? [m[2]] : []));
+    }
+  }
   const metres = found.map((v) => Number(v.replace(',', '.'))).filter((v) => v >= 10 && v <= 50);
   return metres.length ? Math.max(...metres) : null;
 }
@@ -455,7 +582,7 @@ function readPool(html) {
     longest: null, facilities: [], hours: [], prices: null, priceNotes: []
   };
   let section = null;
-  let description = '';
+  const described = [];
   let hoursText = '';
 
   for (const { type, html: w } of parts) {
@@ -471,7 +598,7 @@ function readPool(html) {
     }
     if (type === 'image-box') {
       const desc = w.match(/elementor-image-box-description">([\s\S]*)$/)?.[1] ?? '';
-      description += ' ' + text(desc);
+      described.push(...lines(desc));
     }
     if (type === 'heading' && /<h3/.test(w)) section = text(w).toLowerCase();
     if (type === 'text-editor' && section?.startsWith('afgreiðslu')) {
@@ -482,17 +609,39 @@ function readPool(html) {
     if (type === 'shortcode' && section?.startsWith('gjaldskrá')) pool.prices = readPrices(w) ?? pool.prices;
   }
 
-  const said = description.toLowerCase();
+  /* Sentence by sentence, and not from a sentence about the neighbourhood:
+     descriptions like to mention the restaurant down the road and the gym in
+     the next town, and neither is something the pool has. */
+  /* Line by line as well, since half the descriptions are lists with no full
+     stops in them, and Höfn's ends in "Tjaldsvæði í nágrenninu" — a campsite
+     nearby — which as one run-on sentence took every facility with it. */
+  const units = described.flatMap((line) => line.split(/(?<=[.!?])\s+/));
+  const sentences = units.map((u) => u.toLowerCase())
+    .filter((s) => !/nágrenn|skammt frá|stutt frá|í göngufæri|í bænum/u.test(s));
+  const hours = hoursText.toLowerCase();
   pool.facilities = FACILITIES
-    .filter(([key, re]) => re.test(key === 'aquaAerobics' ? `${said} ${hoursText.toLowerCase()}` : said))
+    .filter(([key, re]) => sentences.some((s) => re.test(s)) || (key === 'aquaAerobics' && re.test(hours)))
     .map(([key]) => key);
-  pool.longest = longestBasin(description);
+  pool.longest = longestBasin(units);
   return pool;
 }
 
 /* ---------- the run ---------- */
 
 const KINDS = { sundlaug: 'pool', badlon: 'lagoon', natturulaug: 'natural' };
+
+/* The natural pools — Landbrotalaug, Reykjadalur, the tubs at Drangsnes — are a
+   section of the directory the WordPress API does not serve, so they are listed
+   from that section's sitemap instead. Only the Icelandic pages: the sitemap
+   mixes in the English copies under the same slugs, and two pools are only in it
+   in English, both of which are covered elsewhere or not at all. */
+const NATURAL = 'https://sundlaugar.is/heitar_laugar-sitemap.xml';
+
+/* Natural pools the directory lists that lib/pools.js deliberately does not:
+   the five nobody could place, which have no address on the directory and no
+   name in OpenStreetMap. A pool that cannot be placed has no page to put these
+   details on. See the note at the top of lib/pools.js. */
+const UNPLACEABLE = new Set(['hveragil', 'kerid-a-husavikurhofda', 'laegdin', 'sika', 'laugarnes-vid-birkimel']);
 
 const categories = await get(`${API}/categories?per_page=100`, { json: true });
 const regions = categories.filter((c) => c.slug !== 'landshluti' && c.parent === categories.find((p) => p.slug === 'landshluti')?.id);
@@ -506,8 +655,17 @@ if (unknown.length) {
 }
 
 const byName = new Map(BUILT_IN.map((p) => [p.name, p.id]));
+const ids = new Set(BUILT_IN.map((p) => p.id));
 const fetched = [];
 const problems = [];
+const skipped = [];
+
+function keep(id, entry) {
+  const drop = CORRECTIONS[id]?.drop ?? [];
+  entry.facilities = entry.facilities.filter((f) => !drop.includes(f));
+  fetched.push({ id, ...entry });
+  process.stderr.write(`  ${entry.name}\n`);
+}
 
 for (const region of asked) {
   const entries = await get(`${API}/sundlaugasafn?categories=${region.id}&per_page=100`, { json: true });
@@ -521,11 +679,37 @@ for (const region of asked) {
     if (!read) { problems.push(`${name} — the page is not the pool template; nothing read`); continue; }
 
     const kind = entry.tags.map((t) => KINDS[tags.get(t)]).find(Boolean) ?? 'pool';
-    const drop = CORRECTIONS[id]?.drop ?? [];
-    read.facilities = read.facilities.filter((f) => !drop.includes(f));
-    fetched.push({ id, name, region: region.slug, kind, source: entry.link, fetched: TODAY, ...read });
-    process.stderr.write(`  ${name}\n`);
+    keep(id, { name, region: region.slug, kind, source: entry.link, fetched: TODAY, ...read });
   }
+}
+
+const links = [...(await get(NATURAL)).matchAll(/<loc>([^<]+)<\/loc>/g)]
+  .map((m) => m[1])
+  .filter((url) => /^https:\/\/sundlaugar\.is\/heitar_laugar\/[^/]+\/$/.test(url));
+process.stderr.write(`natural pools: ${links.length} pages\n`);
+for (const link of links) {
+  const slug = link.split('/').at(-2);
+  if (UNPLACEABLE.has(slug)) { skipped.push(`${slug} — one of the natural pools that cannot be placed`); continue; }
+
+  const html = await page(`heitar_laugar-${slug}`, link);
+  /* The region is only on the page, as a class; the page is read whatever it
+     turns out to be, so a run for one region still reads every natural pool. */
+  const classes = html.match(/type-heitar_laugar[^"]*/)?.[0] ?? '';
+  const region = regions.find((r) => classes.split(/\s+/).includes(`category-${r.slug}`));
+  if (!region) { problems.push(`${slug} — no region on its page`); continue; }
+  if (!asked.includes(region)) continue;
+
+  const name = decode(html.match(/<title>([^<]+)<\/title>/)?.[1] ?? slug).split(/\s+[-|–]\s+/)[0].trim();
+  const id = ids.has(slug) ? slug : (ALIAS[name] ?? byName.get(name));
+  if (!id) { problems.push(`${name} (${slug}) — not in lib/pools.js under that name or slug; add it to ALIAS`); continue; }
+  /* Two pools are in both sections: Hellulaug, and Bláa Lónið as Blue Lagoon.
+     The pool directory's page is the fuller one and wins. */
+  if (fetched.some((p) => p.id === id)) { skipped.push(`${slug} — already read from the pool directory`); continue; }
+
+  const read = readPool(html);
+  if (!read) { problems.push(`${name} — the page is not the pool template; nothing read`); continue; }
+  const kind = /\btag-badlon\b/.test(html) ? 'lagoon' : 'natural';
+  keep(id, { name: BUILT_IN.find((p) => p.id === id).name, region: region.slug, kind, source: link, fetched: TODAY, ...read });
 }
 
 /* ---------- report ---------- */
@@ -553,6 +737,7 @@ for (const p of fetched) {
     console.log('  no price table');
   }
 }
+for (const line of skipped) console.log(`\n  - ${line}`);
 for (const line of problems) console.log(`\n  ! ${line}`);
 console.log(`\n${fetched.length} pools read from ${asked.length} region(s), ${problems.length} problem(s)`);
 
