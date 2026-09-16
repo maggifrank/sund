@@ -38,6 +38,10 @@
   --map-coast: #a7c4d6;
   --map-done: #148d61;
   --map-todo: #ab331c;
+  /* The count on a badge filled green. White holds 4.19:1 on the light green;
+     on the dark theme's green it drops to 3.41, so that theme takes a near-black
+     green instead, at 4.84. */
+  --map-on-done: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,6 +68,7 @@
     --map-coast: #35617e;
     --map-done: #199e6e;
     --map-todo: #e05c42;
+    --map-on-done: #04241a;
   }
 }
 
@@ -149,7 +154,7 @@ body {
     grid-template-areas:
       "head    head"
       "counter counter"
-      "country capital"
+      "country country"
       "history history"
       "pages   pages";
   }
@@ -205,7 +210,6 @@ body {
    grid a full-width span gives each a row of its own. */
 .rate-note      { grid-column: 1 / -1; }
 .map-card--country { grid-area: country; }
-.map-card--capital { grid-area: capital; }
 /* A second full-width list on the map's board. It is a .history for the look,
    and has to be told it does not share that one's place in the grid. */
 .map-pages      { grid-area: pages; }
@@ -1075,54 +1079,110 @@ label.pool-pick {
 
 .map-card { padding-bottom: 12px; }
 
-.map { position: relative; margin-top: 10px; }
+/* The frame holds the map and the zoom buttons laid over its corner. The
+   buttons live outside the map's own element because that is rebuilt whenever
+   the data changes, and would take the buttons — and the tick an iPhone borrows
+   for each — with it. */
+.map-frame { position: relative; margin-top: 10px; }
+.map { position: relative; }
 
 .map-svg {
   display: block;
   width: 100%;
   height: auto;
   border-radius: 10px;
+  /* Until the map is zoomed a single finger belongs to the page, so it can still
+     scroll past; a pinch is always the map's. Once zoomed, every gesture on the
+     map is the map's — there is nothing else a drag across it could mean. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
+.map-svg[data-zoomed] { touch-action: none; cursor: grab; }
+.map-svg.is-dragging { cursor: grabbing; }
+.map-hit.is-group { cursor: zoom-in; }
+
+.map-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.map-zoom-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-2) 88%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.map-zoom-btn:disabled { color: var(--ink-dim); opacity: .5; cursor: default; }
 
 .map-sea { fill: var(--map-sea); }
 .map-land { fill: var(--map-land); stroke: var(--map-coast); }
-
-/* Where the second map is looking, drawn on the first. Dashed and in the dim
-   ink rather than in either marker colour: it is an annotation about the page,
-   not a third thing that pools can be. */
-.map-locator {
-  fill: none;
-  stroke: var(--ink-dim);
-  stroke-width: 2;
-  stroke-dasharray: 7 5;
-  opacity: .65;
-}
 
 /* Filled for visited, hollow for not yet — the shape carries the answer on its
    own, which is what lets a green/red pair be used at all. Both wear the land
    colour where they meet the map: an outer ring on the filled ones, the fill
    itself on the hollow ones, so two pools a few hundred metres apart stay two
    pools rather than merging into a blob. */
-.map-mark.is-done { fill: var(--map-done); stroke: var(--map-land); stroke-width: 2; }
-.map-mark.is-todo { fill: var(--map-land); stroke: var(--map-todo); stroke-width: 2.4; }
+/* Stroke widths and sizes are written on each element and scaled with the
+   zoom — see marksMarkup() — so the stylesheet only gives the colours. */
+.map-mark.is-done { fill: var(--map-done); stroke: var(--map-land); }
+.map-mark.is-todo { fill: var(--map-land); stroke: var(--map-todo); }
 
 .map-hit { fill: transparent; }
 
+/* Several pools drawn as one: the same filled-or-ring rule as a single marker,
+   a ring thick enough to read as split when it is, and the count on top. */
+.map-group.is-done  { fill: var(--map-done); stroke: var(--map-land); }
+.map-group.is-todo  { fill: var(--map-land); stroke: var(--map-todo); }
+.map-group.is-mixed { fill: var(--map-land); }
+.map-group-arc { fill: none; }
+.map-group-arc.is-done { stroke: var(--map-done); }
+.map-group-arc.is-todo { stroke: var(--map-todo); }
+
+.map-group-count {
+  fill: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+.map-group-count.is-done { fill: var(--map-on-done); }
+
+/* A single pool's tooltip is one line; a badge's is a list, so line breaks in
+   the text are kept and a name too long for a phone wraps rather than running
+   off the card. Placed a fixed distance from the mark rather than by a share of
+   its own height, which for a nine-line list left a gap wide enough to lose
+   track of which badge it belonged to. */
 .map-tip {
   position: absolute;
   pointer-events: none;
   background: var(--ink);
   color: var(--bg-2);
   font-size: 12px;
+  line-height: 1.45;
   padding: 5px 9px;
   border-radius: 8px;
-  white-space: nowrap;
-  transform: translate(-50%, -125%);
+  white-space: pre-line;
+  max-width: 260px;
+  width: max-content;
+  text-align: left;
+  transform: translate(-50%, calc(-100% - 10px));
   opacity: 0;
   transition: opacity .12s ease;
 }
 .map-tip[data-show="1"] { opacity: 1; }
-.map-tip[data-below="1"] { transform: translate(-50%, 40%); }
+.map-tip[data-below="1"] { transform: translate(-50%, 10px); }
 
 .map-legend {
   display: flex;
@@ -1146,6 +1206,19 @@ label.pool-pick {
 }
 .map-key.is-done { background: var(--map-done); }
 .map-key.is-todo { border: 2.5px solid var(--map-todo); }
+/* The badge in the legend: a split ring round a number, as on the map. */
+.map-key.is-group {
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink);
+  background:
+    radial-gradient(closest-side, var(--bg-2) calc(100% - 3px), transparent calc(100% - 3px)),
+    conic-gradient(var(--map-done) 0 32%, var(--bg-2) 32% 35%, var(--map-todo) 35% 97%, var(--bg-2) 97%);
+}
 
 #todo-panel {
   max-height: 55vh;

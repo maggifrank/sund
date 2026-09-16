@@ -1,0 +1,37 @@
+# Fails when a pool is drawn in the sea. See bin/check-pools-on-land.mjs.
+#
+# Only the files that decide where a pool is drawn trigger it. No npm install:
+# the check imports the app's own modules and nothing else. The path list is
+# written out twice rather than shared through a YAML anchor, which Actions has
+# not always accepted.
+name: Pools on land
+
+on:
+  pull_request:
+    paths:
+      - lib/pools.js
+      - lib/coastline.js
+      - lib/iceland.js
+      - bin/build-coastline.mjs
+      - bin/check-pools-on-land.mjs
+      - .github/workflows/pools-on-land.yml
+  push:
+    branches: [main]
+    paths:
+      - lib/pools.js
+      - lib/coastline.js
+      - lib/iceland.js
+      - bin/build-coastline.mjs
+      - bin/check-pools-on-land.mjs
+      - .github/workflows/pools-on-land.yml
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node bin/check-pools-on-land.mjs

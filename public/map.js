@@ -13,7 +13,7 @@
 import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import {
   poolRowsFromTotals, totalsIdentifyPools, placeable,
-  mapHTML, mapSignature, bindMapTooltip, CAPITAL
+  mapHTML, mapSignature, bindMapTooltip, bindMapZoom
 } from './lib/poolmap.js';
 import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { poolHref } from './lib/pools.js';
@@ -31,7 +31,6 @@ const ui = {
   visitedCard: el('visited-card'), visited: el('visited'),
   progressFill: el('progress-fill'), offMap: el('off-map'),
   countryCard: el('country-card'), country: el('country'),
-  capitalCard: el('capital-card'), capital: el('capital'),
   noSnapshot: el('no-snapshot'),
   todoCard: el('todo-card'), todoToggle: el('todo-toggle'),
   todoPanel: el('todo-panel'), todoSummary: el('todo-summary'),
@@ -70,14 +69,15 @@ function setLang(next) {
 /* ---------- the maps ---------- */
 
 let mapSig = null;
+/* A pool on the map opens its own page — see bindMapTooltip(). */
+const poolLink = (row) => poolHref(row.id);
 
 function renderMaps(rows) {
   const sig = mapSignature(lang, rows);
   if (sig === mapSig) return;
   mapSig = sig;
-  const href = (row) => poolHref(row.id);
-  ui.country.innerHTML = mapHTML(lang, rows, { locator: CAPITAL, ariaKey: 'map.countryAria', href });
-  ui.capital.innerHTML = mapHTML(lang, rows, { win: CAPITAL, ariaKey: 'map.capitalAria', href });
+  ui.country.innerHTML = mapHTML(lang, rows, { ariaKey: 'map.countryAria', href: poolLink });
+  countryZoom.refresh(lang, rows);
 }
 
 /* ---------- pool pages ---------- */
@@ -141,7 +141,7 @@ function render() {
      the country under a red ring and claim the swimming never happened, which
      is worse than an empty page by some distance. */
   const known = totalsIdentifyPools(snapshot.poolTable);
-  for (const card of [ui.visitedCard, ui.countryCard, ui.capitalCard, ui.todoCard, ui.pagesCard]) {
+  for (const card of [ui.visitedCard, ui.countryCard, ui.todoCard, ui.pagesCard]) {
     card.hidden = !known;
   }
   ui.noSnapshot.hidden = known;
@@ -197,7 +197,9 @@ ui.pagesToggle.addEventListener('click', () => {
 ui.langSelect.value = lang;
 applyStaticStrings();
 bindMapTooltip(ui.country);
-bindMapTooltip(ui.capital);
+const countryZoom = bindMapZoom(ui.country, {
+  maxZoom: 48, controls: document.getElementById('country-zoom'), href: poolLink
+});
 
 try {
   const res = await fetch('./state.json', { cache: 'no-cache' });

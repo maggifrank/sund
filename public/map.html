@@ -37,23 +37,21 @@
        #no-snapshot takes their place and says why. -->
   <section id="country-card" class="card map-card map-card--country" aria-labelledby="country-label" hidden>
     <div id="country-label" class="label" data-i18n="map.country"></div>
-    <div id="country" class="map"></div>
+    <div class="map-frame">
+      <div id="country" class="map"></div>
+      <div class="map-zoom" id="country-zoom" role="group" data-i18n-aria="map.zoomGroup">
+        <button type="button" class="map-zoom-btn" data-zoom="in" data-i18n-aria="map.zoomIn" data-i18n-title="map.zoomIn">+</button>
+        <button type="button" class="map-zoom-btn" data-zoom="out" data-i18n-aria="map.zoomOut" data-i18n-title="map.zoomOut" disabled>−</button>
+        <button type="button" class="map-zoom-btn" data-zoom="reset" data-i18n-aria="map.zoomReset" data-i18n-title="map.zoomReset" hidden>⤢</button>
+      </div>
+    </div>
     <ul class="map-legend">
       <li><span class="map-key is-done" aria-hidden="true"></span><span data-i18n="map.legendDone"></span></li>
       <li><span class="map-key is-todo" aria-hidden="true"></span><span data-i18n="map.legendTodo"></span></li>
-    </ul>
-  </section>
-
-  <section id="capital-card" class="card map-card map-card--capital" aria-labelledby="capital-label" hidden>
-    <div id="capital-label" class="label" data-i18n="map.capital"></div>
-    <div id="capital" class="map"></div>
-    <ul class="map-legend">
-      <li><span class="map-key is-done" aria-hidden="true"></span><span data-i18n="map.legendDone"></span></li>
-      <li><span class="map-key is-todo" aria-hidden="true"></span><span data-i18n="map.legendTodo"></span></li>
+      <li><span class="map-key is-group" aria-hidden="true">3</span><span data-i18n="map.legendGroup"></span></li>
     </ul>
     <!-- CC BY 4.0 asks for the dataset, its publisher and the licence, where
-         the work is shown. One line under the second map covers both: they are
-         cut from the same data. -->
+         the work is shown. -->
     <p class="map-credit"><span data-i18n="map.creditCoast"></span>:
       <a href="https://www.natt.is/en/resources/open-data" target="_blank" rel="noopener">IS 50V, Náttúrufræðistofnun</a>
       · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="license noopener">CC BY 4.0</a></p>

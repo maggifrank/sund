@@ -317,20 +317,39 @@ app knows about, drawn where it actually is, **filled green where you have swum
 and a hollow red ring where you have not**. The headline is the bare fraction,
 `23 / 126`, with a progress bar under it.
 
-Two maps rather than one. A sixth of the pools that can be placed at all sit
-inside twenty kilometres of Reykjavík, and the three the card covers are within
-two and a half of each other — so at the scale that fits Iceland into a phone
-column they are one smudge, and the card's own pools are a single dot. The
-country map is therefore followed by a second pass over the **capital area**,
-40 km across, and the country map carries a dashed rectangle saying which piece
-that is. Both are drawn by one function from the same rows; only the window
-differs. The markers are the same size on both — the zoomed map scales the
-coastline underneath rather than the marks on top of it — so a pool is the same
-size to the eye and the same size to a finger wherever it turns up.
+**Pools too close to draw apart share a badge.** A marker is about twelve
+kilometres across at the scale that fits Iceland into a phone column, so 82 of
+the 126 used to sit on top of another one — a red ring over a green disc, with
+no way to tap the one underneath. Overlapping marks are now merged, closest pair
+first, until nothing on the map overlaps anything else: at no zoom that leaves
+40 pools on their own and 20 badges. A badge says how many pools are in it, and
+its ring is split to say how many of those have been swum in — green from twelve
+o'clock for the swum share, red for the rest, with a gap at each join so the
+split is a shape and not only a colour. It stands on its most central pool rather
+than on the average of their positions, which for pools strung round a bay would
+be out in the bay. Hovering or tapping lists what is in it.
+
+**And the map zooms**, because a badge only says that something is there. The
+grouping is worked out again as the map gets closer, so badges come apart into
+their pools, and **tapping a badge flies straight in to them**. At 48 times —
+the most it goes — every pool stands on its own; at 32 two in Reykjanesbær still
+share. The marks stay the same size on the screen at every zoom, so a pool is the
+same size to a finger however close the map is. The gestures are chosen not to
+take the page hostage: on a phone one finger still scrolls the page until the map
+has been zoomed, two fingers pinch, and once zoomed one finger pans; on a laptop
+a plain scroll scrolls the page, and a trackpad pinch or ⌘/Ctrl with the wheel
+zooms. A double tap zooms in, and **+**, **−** and a reset button do all of it
+without a gesture. The view survives the fifteen-second poll, so a new swim
+does not throw a zoomed map back out to the whole country.
+
+There used to be a second map for the **capital area**, because a sixth of the
+pools sit inside twenty kilometres of Reykjavík and at country scale they were
+one smudge. With zoom it was the same picture twice, so it has gone — but its
+detailed coastline has not; see below.
 
 **Colour is never the only thing saying it.** Green and red are precisely the
 pair a red-green reader cannot separate. Measured in OKLab under simulated
-deuteranopia, against the land each map is drawn on rather than the card behind
+deuteranopia, against the land the map is drawn on rather than the card behind
 it, this pair comes out 9.0 apart in light mode and 8.1 in dark — above the
 target, but not by a margin worth resting a page on. So visited is a *filled*
 disc and not-yet is a *hollow* ring: the shape says it without the colour and
@@ -391,7 +410,7 @@ run it and diff it.
 It comes from **IS 50V strandlína**, the national coastline at 1:50,000 with a
 positional accuracy of 10 m, published by Náttúrufræðistofnun under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — the credit line under
-the capital map is that licence's attribution. It replaced Natural Earth 1:10m,
+the map, and under the one on every pool's page, is that licence's attribution. It replaced Natural Earth 1:10m,
 which is drawn to about a kilometre. That was fine for the outline of the
 country and wrong by enough to matter everywhere else: **25 of the 126 pools
 were in the sea**, Höfn and Borgarnes a kilometre and a half offshore because
@@ -399,16 +418,19 @@ the peninsulas those towns stand on were not in it, and five in the capital
 area, where Seltjarnarnes was a blunt triangle. It was written down as a known
 limit, which was the wrong call — a pool in the sea is a map that is wrong.
 
-**Two outlines, one per map.** The capital map is thirteen times closer than the
-country map, so a coast simplified for the country is visibly wrong there, and
-one detailed enough for the capital would be a megabyte of fjords nobody can see
-at country scale. Each is cut from the national data in the page units of the map
-that draws it and simplified to the same tolerance *on its own page* — under
-half a pixel at the widest the board draws a map. The capital's is clipped to its
-window first. Islands too small to be a dot are dropped from each, except any
-island with a pool on it: Grímsey is a speck at country scale and it is also a
-pool. The page refuses to draw a window it has no outline for, rather than blow
-up the country's — which is exactly how the capital map got its pools wet.
+**Two outlines, one per scale.** Zoomed into the capital area the map is
+thirteen times closer or more, so a coast simplified for the whole country is
+visibly wrong there, and one detailed enough for the capital everywhere would be
+a megabyte of fjords nobody can see at country scale. So the capital area, 40 km
+across, has an outline of its own: inside that rectangle the map draws the
+capital's detailed coast, and the country's coarse one is clipped away. Zoom into
+Reykjavík and Seltjarnarnes is the shape of Seltjarnarnes. Each outline is cut
+from the national data and simplified to the same tolerance *at its own scale* —
+under half a pixel — and the capital's is clipped to its window first. Islands
+too small to be a dot are dropped from each, except any island with a pool on
+it: Grímsey is a speck at country scale and it is also a pool. A pool's page
+uses the same two: a pool in the capital area is drawn on the capital's coast,
+closer in, and anywhere else on the country's.
 
 **Every pool is checked against what is drawn.** After simplifying, the
 generator tests each pool against the rounded coordinates that go into the file,
@@ -419,7 +441,16 @@ held at full detail and is cut again. Four needed it — Flateyri, Hellulaug,
 Geosea and the tubs at Drangsnes, between 43 m and nothing at all offshore — for
 107 extra points, where holding every pool's neighbourhood at full detail costs
 4,500. The result is written into the header of `lib/coastline.js`: **0 of 126**
-in the sea on the country map, **0 of 21** on the capital map.
+in the sea on the country's outline, **0 of 21** on the capital's.
+
+**And checked again on every change.** The coast is cut rarely and the pool list
+changes often — forty-five pools were given positions in one afternoon — so
+[`bin/check-pools-on-land.mjs`](bin/check-pools-on-land.mjs) runs in GitHub
+Actions on every pull request and push to `main` that touches the pools, the
+coastline or the projection, and fails naming any pool that lands offshore and by
+how many metres. It shares no code with the generator on purpose: it reads the
+path strings exactly as `lib/coastline.js` writes them, so a mistake in how the
+generator audits itself cannot hide in the check too.
 
 It is projected on **Iceland's own national grid** — ISN93 / Lambert 1993,
 EPSG:3057: a conformal conic on GRS80 with standard parallels at 64°15′ and
@@ -912,17 +943,19 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/money.js` | currency per language, conversion and formatting |
 | `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
-| `lib/poolmap.js` | the two pool maps and the marks on them |
+| `lib/poolmap.js` | the pool map — its marks, badges and zoom |
 | `lib/poolpage.js` | a pool's page and the map's list of them, shared by both pages |
 | `lib/poolinfo.js` | what sundlaugar.is says about each pool — generated, do not edit |
-| `lib/iceland.js` | the ISN93 / Lambert projection, the capital window and the map page's geometry |
-| `lib/coastline.js` | the two coastlines, country and capital — generated, do not edit |
+| `lib/iceland.js` | the ISN93 / Lambert projection, the capital area's window and the map's geometry |
+| `lib/coastline.js` | the two coastlines, the country and the capital area in detail — generated, do not edit |
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
 | `lib/rates.js` | ECB rate fetching and cache freshness |
 | `serve.js` | LXC backend — static files + API, file-backed, no dependencies |
 | `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
 | `bin/publish.mjs` | snapshot, build and deploy the public site |
 | `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from IS 50V, and check every pool is on land |
+| `bin/check-pools-on-land.mjs` | check no pool is drawn in the sea — run by CI, independently of the generator |
+| `.github/workflows/pools-on-land.yml` | runs that check when the pools, the coast or the projection change |
 | `bin/fetch-pool-info.mjs` | read sundlaugar.is a region at a time into `lib/poolinfo.js` |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |

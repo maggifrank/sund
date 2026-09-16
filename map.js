@@ -11,11 +11,11 @@
 import { emptyState, normalize, applyQueue } from './lib/state.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
 import {
-  poolRows, placeable, mapHTML, mapSignature, bindMapTooltip, CAPITAL
+  poolRows, placeable, mapHTML, mapSignature, bindMapTooltip, bindMapZoom
 } from './lib/poolmap.js';
 import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { poolHref } from './lib/pools.js';
-import { attachTapHaptics } from './lib/celebrate.js';
+import { attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
 const TOKEN_KEY = 'sund.token';
@@ -89,7 +89,7 @@ const el = (id) => document.getElementById(id);
 const ui = {
   back: el('back'), langSelect: el('lang-select'),
   visited: el('visited'), progressFill: el('progress-fill'), offMap: el('off-map'),
-  country: el('country'), capital: el('capital'),
+  country: el('country'),
   todoToggle: el('todo-toggle'), todoPanel: el('todo-panel'), todoSummary: el('todo-summary'),
   pagesToggle: el('pages-toggle'), pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary')
 };
@@ -128,16 +128,17 @@ function setLang(next) {
 /* ---------- the maps ---------- */
 
 let mapSig = null;
+/* A pool on the map opens its own page — see bindMapTooltip(). */
+const poolLink = (row) => poolHref(row.id);
 
 function renderMaps(rows) {
   const sig = mapSignature(lang, rows);
   if (sig === mapSig) return;
   mapSig = sig;
-  /* The country first, carrying the rectangle that says where the second one is
-     looking; then the capital area at the scale the capital needs. */
-  const href = (row) => poolHref(row.id);
-  ui.country.innerHTML = mapHTML(lang, rows, { locator: CAPITAL, ariaKey: 'map.countryAria', href });
-  ui.capital.innerHTML = mapHTML(lang, rows, { win: CAPITAL, ariaKey: 'map.capitalAria', href });
+  ui.country.innerHTML = mapHTML(lang, rows, { ariaKey: 'map.countryAria', href: poolLink });
+  /* Straight back to wherever the map was zoomed to — a redraw is new data or a
+     new language, never a reason to lose your place. */
+  countryZoom.refresh(lang, rows);
 }
 
 /* ---------- pool pages ---------- */
@@ -251,12 +252,17 @@ ui.pagesToggle.addEventListener('click', () => {
 ui.langSelect.value = lang;
 applyStaticStrings();
 bindMapTooltip(ui.country);
-bindMapTooltip(ui.capital);
-/* The same borrowed tick every other control in the app has, on the two things
-   here that can be pressed. */
+/* Close enough that every pool in the country stands on its own: at 32 times
+   two pools in Reykjanesbær still share a badge, at 48 nothing does. */
+const countryZoom = bindMapZoom(ui.country, {
+  maxZoom: 48, controls: document.getElementById('country-zoom'), href: poolLink
+});
+/* The same borrowed tick every other control in the app has, on the things here
+   that can be pressed. */
 attachTapHaptics(ui.back, { radius: '10px' });
 attachTapHaptics(ui.todoToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHaptics(ui.pagesToggle, { radius: 'var(--radius)', fill: 'block' });
+attachTapHapticsAll(document.querySelectorAll('.map-zoom-btn'), { radius: '8px' });
 loadCache();
 render();
 poll({ force: true });

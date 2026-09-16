@@ -15,12 +15,13 @@
  * a kilometre and a half offshore, because the peninsulas those towns stand on
  * were simply not in it.
  *
- * Two outlines are cut, one per map, because one outline cannot serve both. The
- * capital map is thirteen times closer than the country map, so a coastline
- * simplified for the country is visibly wrong there, and one detailed enough for
- * the capital would be a megabyte of fjords nobody can see at country scale.
- * Each is simplified to the same tolerance *on its own page* — so both are as
- * detailed as the eye can use and no more.
+ * Two outlines are cut, because one cannot serve both scales. Zoomed into the
+ * capital area the map is thirteen times closer or more, so a coastline
+ * simplified for the whole country is visibly wrong there, and one detailed
+ * enough for the capital everywhere would be a megabyte of fjords nobody can see
+ * at country scale. So the capital area gets an outline of its own, which the
+ * map switches to inside that area, and each is simplified to the same
+ * tolerance *at its own scale* — as detailed as the eye can use and no more.
  *
  * Projection and page geometry both come from lib/iceland.js: the country
  * through project(), the capital through frame(CAPITAL) on top of it. Those are
@@ -50,14 +51,13 @@ const arg = (name, fallback) => {
 const SOURCE = arg('--source', WFS);
 const WRITE = process.argv.includes('--write');
 
-/* How much detail each outline keeps, in the page units of the map it is drawn
-   on. The tolerance is the same on both — 0.4 of a unit, under half a pixel at
-   the widest the board draws a map — so neither map shows a corner the other
-   would have smoothed away.
+/* How much detail each outline keeps, in the units it is cut in. The tolerance
+   is the same on both — 0.4 of a unit, under half a pixel at the scale each is
+   for — so neither shows a corner the other would have smoothed away.
 
    The area floors are what keep 6,244 polygons from turning into a megabyte of
-   specks. On the country map 2 units² is a skerry about 800 m across, which is
-   already under a pixel; on the capital map 4 units² is about 80 m across, the
+   specks. For the country 2 units² is a skerry about 800 m across, which is
+   already under a pixel; for the capital area 4 units² is about 80 m across, the
    smallest islet that still shows as a dot. Any island with a pool on it is kept
    whatever its size — Grímsey is a speck at country scale and it is also a pool. */
 const TOLERANCE = 0.4;
@@ -365,9 +365,10 @@ const module = `/* The coastlines, as SVG path data. Generated — do not edit b
    Náttúrufræðistofnun under CC BY 4.0; the map page carries the attribution.
    ${raw.features.length} polygons and ${sourcePoints} points in.
 
-   Two outlines, each in the page units of the map that draws it, simplified to
-   ${TOLERANCE} of a unit on that page — see bin/build-coastline.mjs for why one
-   outline cannot serve both.
+   Two outlines, each in the units it is cut in and simplified to ${TOLERANCE}
+   of a unit at that scale — the whole country, and the capital area, which the
+   map draws in place of the country's outline once zoomed in there. See
+   bin/build-coastline.mjs for why one outline cannot serve both.
 
    COASTLINE          the country, lib/iceland.js project()
                       ${country.rings.length} rings, ${points(country)} points, islands under ${MIN_AREA.country} units² dropped
