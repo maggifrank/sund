@@ -130,6 +130,8 @@ const COPY = [
   ['lib/poolmap.js', 'lib/poolmap.js'],
   ['lib/poolpage.js', 'lib/poolpage.js'],
   ['lib/poolinfo.js', 'lib/poolinfo.js'],
+  ['lib/busychart.js', 'lib/busychart.js'],
+  ['lib/poolbusy.js', 'lib/poolbusy.js'],
   ['lib/iceland.js', 'lib/iceland.js'],
   ['lib/coastline.js', 'lib/coastline.js']
 ];

@@ -1359,6 +1359,47 @@ table.hours tr.is-today td { border-radius: 0 8px 8px 0; }
 
 .pool-links { margin: 10px 0 0; font-size: 14px; }
 
+/* ---- busy times ---- */
+
+/* The weekday picker: one row of pills above the chart, the filter-over-chart
+   arrangement the rest of the app's controls follow. Pressed is filled, so the
+   day on show is said by shape as well as colour. */
+.busy-days {
+  display: flex;
+  gap: 4px;
+  margin: 10px 0 0;
+}
+/* Seven equal shares of the row, so the week fits on one line in a phone column
+   instead of leaving Sunday alone on a second. */
+.busy-day {
+  flex: 1 1 0;
+  min-width: 0;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 0;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.busy-day:hover { color: var(--ink); }
+.busy-day[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* The hour it is now, when the day on show is today: the chart mark for this
+   hour and its recessive step for the rest — the pair the weekday pie already
+   uses, checked as a one-hue ramp against the card in both modes. */
+.bar.is-dim { fill: var(--chart-mark-dim); }
+
+.busy-line { margin: 8px 0 0; font-size: 14px; }
+.busy-now { font-weight: 600; }
+.pool-busy .note a { color: inherit; }
+
 /* A row that is a way to a pool's page: the map's mark, the name, how often,
    and the chevron that says it goes somewhere. */
 a.pool-link {
