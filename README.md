@@ -554,6 +554,36 @@ page takes the date and weekday from UTC, whatever the phone thinks its time
 zone is. It does not know about public holidays, which the directory lists
 inconsistently or not at all.
 
+**Busy times, for Reykjavík's eight pools.** Google's *Popular times* would have
+been the obvious source, and it is not one on offer: there is no API for it, only
+scraping Google Maps or paying a service that does. Reykjavík publishes something
+better for its own pools, as [open data](https://gagnagatt.reykjavik.is/dataset/sundlaugagestir_i_reykjavik):
+every visitor through the entrance gates, counted per hour, per pool. Those are
+people, not a curve relative to the pool's own peak. Kópavogur, Hafnarfjörður
+and the rest of the country publish nothing like it, so Laugardalslaug,
+Vesturbæjarlaug, Sundhöll Reykjavíkur, Breiðholtslaug, Grafarvogslaug,
+Árbæjarlaug, Dalslaug and Klébergslaug have the chart and no other pool does.
+
+[`bin/fetch-pool-busyness.mjs`](bin/fetch-pool-busyness.mjs) turns the counts
+into `lib/poolbusy.js`: a typical week for each pool and season, the average
+number of people coming in during each hour. Averaged over the last two years
+the city has published and nothing before March 2022, when the pandemic's caps
+on capacity came off; days a pool was shut or nearly are left out, since a
+closed Tuesday would drag down every Tuesday. The city's file currently ends in
+January 2024, and the page says which months it is an average of.
+
+The card shows today in the season it is now — winter December to February, as
+the dataset has it — with the hour it is now picked out and the other hours
+stepped back to the recessive tint of the same blue, the pair the weekday pie
+uses. A sentence under the chart says the same in words, *Now, 11:00–12:00,
+about 49 people usually arrive*, and names the busiest hour, so the colour is
+never the only thing saying it. The day buttons turn to any other day. It
+counts arrivals, not how many are in the water at once, and says so.
+
+```bash
+node bin/fetch-pool-busyness.mjs --write
+```
+
 **Nothing new is published about the swimming.** The private page says when a
 pool was last swum in; the public one is handed the same totals as the map and
 says how often, never when. Whether the card covers a pool is shown on the
@@ -979,6 +1009,8 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/poolmap.js` | the pool map — its marks, badges and zoom |
 | `lib/poolpage.js` | a pool's page and the map's list of them, shared by both pages |
 | `lib/poolinfo.js` | what sundlaugar.is says about each pool — generated, do not edit |
+| `lib/busychart.js` | the busy-times chart on a pool page |
+| `lib/poolbusy.js` | a typical week of visitors for Reykjavík's pools — generated, do not edit |
 | `lib/iceland.js` | the ISN93 / Lambert projection, the capital area's window and the map's geometry |
 | `lib/coastline.js` | the two coastlines, the country and the capital area in detail — generated, do not edit |
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
@@ -990,6 +1022,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `bin/check-pools-on-land.mjs` | check no pool is drawn in the sea — run by CI, independently of the generator |
 | `.github/workflows/pools-on-land.yml` | runs that check when the pools, the coast or the projection change |
 | `bin/fetch-pool-info.mjs` | read sundlaugar.is a region at a time into `lib/poolinfo.js` |
+| `bin/fetch-pool-busyness.mjs` | average Reykjavík's gate counts into `lib/poolbusy.js` |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |
 | `deploy/sund-publish.*` | publish the public snapshot every 15 min |
