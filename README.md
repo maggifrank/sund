@@ -323,12 +323,32 @@ kilometres across at the scale that fits Iceland into a phone column, so 82 of
 the 126 used to sit on top of another one — a red ring over a green disc, with
 no way to tap the one underneath. Overlapping marks are now merged, closest pair
 first, until nothing on the map overlaps anything else: at no zoom that leaves
-39 pools on their own and 21 badges. A badge says how many pools are in it, and
+39 pools on their own and 21 badges on a laptop, and 16 of each on a phone,
+whose marks are drawn bigger. A badge says how many pools are in it, and
 its ring is split to say how many of those have been swum in — green from twelve
 o'clock for the swum share, red for the rest, with a gap at each join so the
 split is a shape and not only a colour. It stands on its most central pool rather
 than on the average of their positions, which for pools strung round a bay would
 be out in the bay. Hovering or tapping lists what is in it.
+
+**A mark is drawn for the size it ends up on the screen.** Its radius is in
+units of a 1000-unit page, so what it comes to in pixels is whatever the map was
+scaled to, and in a phone column that was a 7 px dot inside a 15 px target —
+half what a finger can aim at. The second tap that opens a pool's page kept
+landing on the map instead of on the pool. So the map measures how wide it is
+actually drawn and grows a mark to 14 px across, never past twice its
+country-map size, and the invisible target around it to 36 px on every screen.
+Bigger marks group sooner, which is why a phone shows fewer, larger badges than
+a laptop. A pool page's map, which is cropped in close, works the number out the
+same way from its own crop.
+
+**One tap says which pool, the next one opens it.** A mouse hovers, so a click
+goes straight to the pool's page; a finger has no hover, so the first tap is the
+hover — the name card — and a second tap on the same pool opens it, which the
+card says outright. Taking the reader away on the first tap would leave no way
+to find out what a mark is without leaving the map. The lists under the map are
+the way there that needs no aim at all: every pool still to go, and every pool
+by region, is a link to its page.
 
 **And the map zooms**, because a badge only says that something is there. The
 grouping is worked out again as the map gets closer, so badges come apart into

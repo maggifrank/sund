@@ -15,7 +15,7 @@ import {
   poolRowsFromTotals, totalsIdentifyPools, placeable,
   mapHTML, mapSignature, bindMapTooltip, bindMapZoom
 } from './lib/poolmap.js';
-import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
+import { renderRegionList, poolLinkRow, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { poolHref } from './lib/pools.js';
 
 const LANG_KEY = 'sund.lang';
@@ -109,22 +109,16 @@ function renderTodo(rows) {
     return;
   }
 
+  /* Every pool is a link to its own page, the same row the region list below is
+     built from — including the ones with no position, which have a page like any
+     other and only cannot be drawn. */
   const frag = document.createDocumentFragment();
   for (const row of todo) {
-    /* Nodes rather than an HTML string: a pool name can have been typed by hand
-       at a check-in, and textContent keeps that out of the parser. */
-    const node = document.createElement('div');
-    node.className = 'pool-row map-todo-row';
-    node.innerHTML = '<span class="map-key is-todo" aria-hidden="true"></span>' +
-                     '<span class="pool-name"></span>';
-    node.querySelector('.pool-name').textContent = row.name;
-    if (!placeable(row)) {
-      const tag = document.createElement('span');
-      tag.className = 'pool-tag';
-      tag.textContent = t(lang, 'map.offMapTag');
-      node.append(tag);
-    }
-    frag.append(node);
+    frag.append(poolLinkRow(lang, {
+      id: row.id,
+      name: row.name,
+      tag: placeable(row) ? null : t(lang, 'map.offMapTag')
+    }));
   }
   ui.todoPanel.replaceChildren(frag);
 }

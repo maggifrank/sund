@@ -1227,7 +1227,6 @@ label.pool-pick {
   padding: 4px 16px 8px;
 }
 
-.map-todo-row { grid-template-columns: auto 1fr auto; }
 
 /* The region list: sticky region headings over the rows, as the history's
    months are, so the panel runs edge to edge and the rows keep the gutter. */
@@ -1403,10 +1402,12 @@ table.hours tr.is-today td { border-radius: 0 8px 8px 0; }
 /* A row that is a way to a pool's page: the map's mark, the name, how often,
    and the chevron that says it goes somewhere. */
 a.pool-link {
-  grid-template-columns: auto 1fr auto auto;
+  display: flex;
+  align-items: center;
   color: inherit;
   text-decoration: none;
 }
+a.pool-link .pool-name { flex: 1; min-width: 0; }
 a.pool-link:hover .pool-name { text-decoration: underline; }
 a.pool-link .chev { font-size: 16px; }
 
