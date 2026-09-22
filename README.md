@@ -345,7 +345,12 @@ same way from its own crop.
 **One tap says which pool, the next one opens it.** A mouse hovers, so a click
 goes straight to the pool's page; a finger has no hover, so the first tap is the
 hover — the name card — and a second tap on the same pool opens it, which the
-card says outright. Taking the reader away on the first tap would leave no way
+card says outright. The card then **stays up**, which took some doing: a touch
+pointer stops existing the moment the finger lifts, so the browser sends the
+same pointerleave a mouse sends on its way out, and the card was gone before it
+could be read — leaving no way to know which pool the next tap would open. Only
+a mouse leaving takes it away now. A tapped card stands until something replaces
+it: another mark, a tap on the map away from the marks, or a pan or a zoom. Taking the reader away on the first tap would leave no way
 to find out what a mark is without leaving the map. The lists under the map are
 the way there that needs no aim at all: every pool still to go, and every pool
 by region, is a link to its page.
