@@ -1442,7 +1442,7 @@ a.pool-name:hover { text-decoration: underline; }
   position: fixed;
   z-index: 95;
   pointer-events: none;
-  font-size: 30px;
+  font-size: 38px;
   line-height: 1;
   animation: emoji-float 1.05s cubic-bezier(.22, .68, .3, 1) forwards;
   will-change: transform, opacity;
