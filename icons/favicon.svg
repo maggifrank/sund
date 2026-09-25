@@ -1,28 +1,71 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Source for every Sund icon. Full-bleed on purpose: iOS and Android cut
-       their own shape out of it, so everything that matters stays inside the
-       maskable safe zone (a circle of radius 205 around the centre).
-       After editing, run `node bin/build-icons.mjs`. -->
+  <!-- Source for every Sund icon: a swimmer in a hot pool at dusk.
+       Full-bleed on purpose: iOS and Android cut their own shape out of it, so
+       everything that matters stays inside the maskable safe zone (a circle of
+       radius 205 around the centre). After editing, run `node bin/build-icons.mjs`. -->
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3fb4df"/>
-      <stop offset="1" stop-color="#0b3d5c"/>
+      <stop offset="0" stop-color="#0a1a3a"/>
+      <stop offset=".45" stop-color="#3b2a78"/>
+      <stop offset=".8" stop-color="#c2507e"/>
+      <stop offset="1" stop-color="#ff8a5c"/>
     </linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fff4c9"/>
+      <stop offset=".35" stop-color="#ffc56b"/>
+      <stop offset=".7" stop-color="#ff7a59" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ff7a59" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b7fa6"/>
+      <stop offset=".45" stop-color="#0c4a70"/>
+      <stop offset="1" stop-color="#061a33"/>
+    </linearGradient>
+    <linearGradient id="glint" gradientUnits="userSpaceOnUse" x1="150" y1="0" x2="362" y2="0">
+      <stop offset="0" stop-color="#ffc56b" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#ffd98a"/>
+      <stop offset="1" stop-color="#ffc56b" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="b"/>
+      <feFlood flood-color="#ffb070" flood-opacity=".7"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
+
   <rect width="512" height="512" rx="115" fill="url(#sky)"/>
-  <g transform="translate(0 18)">
-    <!-- steam off a hot pool -->
-    <g fill="none" stroke="#fff" stroke-linecap="round">
-      <path d="M128 222c-12-16 12-26 0-44s10-28 0-42" stroke-width="14" opacity=".55"/>
-      <path d="M168 158c-10-14 10-22 0-38s8-24 0-36" stroke-width="12" opacity=".4"/>
-    </g>
-    <!-- swimmer: head, and an arm coming over in a crawl stroke -->
-    <path d="M188 306C184 184 346 150 404 288" fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round"/>
-    <circle cx="296" cy="268" r="32" fill="#fff"/>
-    <!-- water -->
-    <g fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round">
-      <path d="M112 318c24 0 24-18 48-18s24 18 48 18 24-18 48-18 24 18 48 18 24-18 48-18 24 18 48 18"/>
-      <path d="M112 378c24 0 24-18 48-18s24 18 48 18 24-18 48-18 24 18 48 18 24-18 48-18 24 18 48 18" opacity=".6"/>
-    </g>
+  <g fill="#fff">
+    <circle cx="104" cy="96" r="3" opacity=".8"/>
+    <circle cx="176" cy="64" r="2" opacity=".6"/>
+    <circle cx="392" cy="84" r="3.5" opacity=".85"/>
+    <circle cx="430" cy="150" r="2" opacity=".5"/>
+    <circle cx="300" cy="52" r="2" opacity=".55"/>
   </g>
+  <circle cx="256" cy="318" r="170" fill="url(#sun)"/>
+  <circle cx="256" cy="318" r="62" fill="#ffe7a8"/>
+
+  <!-- steam curling off the water -->
+  <g fill="none" stroke="#fff" stroke-linecap="round" filter="url(#soft)">
+    <path d="M150 262c-16-22 16-36 0-60s14-38 0-60" stroke-width="16" opacity=".6"/>
+    <path d="M362 250c-14-20 14-32 0-54s12-34 0-54" stroke-width="14" opacity=".5"/>
+  </g>
+
+  <!-- the pool -->
+  <path d="M0 318c32 0 32-14 64-14s32 14 64 14 32-14 64-14 32 14 64 14 32-14 64-14 32 14 64 14 32-14 64-14 32 14 64 14V512H0z" fill="url(#sea)"/>
+  <g stroke="url(#glint)" stroke-linecap="round">
+    <path d="M176 350h160" stroke-width="10"/>
+    <path d="M200 380h112" stroke-width="8" opacity=".75"/>
+    <path d="M226 406h60" stroke-width="6" opacity=".5"/>
+  </g>
+
+  <!-- swimmer, lit from behind -->
+  <g filter="url(#glow)" fill="#fff">
+    <path d="M178 322C170 198 340 160 410 300" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round"/>
+    <circle cx="292" cy="290" r="34"/>
+  </g>
+  <path d="M96 332c26 0 26-16 52-16s26 16 52 16 26-16 52-16 26 16 52 16 26-16 52-16 26 16 52 16" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round"/>
 </svg>
