@@ -1,71 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Source for every Sund icon: a swimmer in a hot pool at dusk.
-       Full-bleed on purpose: iOS and Android cut their own shape out of it, so
-       everything that matters stays inside the maskable safe zone (a circle of
-       radius 205 around the centre). After editing, run `node bin/build-icons.mjs`. -->
+  <!-- Source for every Sund icon: a turtle in swim goggles, half under the
+       water at sunset. Full-bleed on purpose: iOS and Android cut their own
+       shape out of it. The maskable build shrinks #art so the turtle stays in
+       Android's safe zone. After editing, run `node bin/build-icons.mjs`. -->
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0a1a3a"/>
-      <stop offset=".45" stop-color="#3b2a78"/>
-      <stop offset=".8" stop-color="#c2507e"/>
-      <stop offset="1" stop-color="#ff8a5c"/>
-    </linearGradient>
-    <radialGradient id="sun" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#fff4c9"/>
-      <stop offset=".35" stop-color="#ffc56b"/>
-      <stop offset=".7" stop-color="#ff7a59" stop-opacity=".55"/>
-      <stop offset="1" stop-color="#ff7a59" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b7fa6"/>
-      <stop offset=".45" stop-color="#0c4a70"/>
-      <stop offset="1" stop-color="#061a33"/>
-    </linearGradient>
-    <linearGradient id="glint" gradientUnits="userSpaceOnUse" x1="150" y1="0" x2="362" y2="0">
-      <stop offset="0" stop-color="#ffc56b" stop-opacity="0"/>
-      <stop offset=".5" stop-color="#ffd98a"/>
-      <stop offset="1" stop-color="#ffc56b" stop-opacity="0"/>
-    </linearGradient>
-    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="5"/>
-    </filter>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="b"/>
-      <feFlood flood-color="#ffb070" flood-opacity=".7"/>
-      <feComposite in2="b" operator="in" result="g"/>
-      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd9a8"/><stop offset="1" stop-color="#ff9a7a"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a8fb0"/><stop offset="1" stop-color="#062a4d"/></linearGradient>
+    <clipPath id="above"><rect width="512" height="272"/></clipPath>
+    <clipPath id="below"><path d="M0 272c32 0 32-12 64-12s32 12 64 12 32-12 64-12 32 12 64 12 32-12 64-12 32 12 64 12 32-12 64-12 32 12 64 12V512H0z"/></clipPath>
   </defs>
-
   <rect width="512" height="512" rx="115" fill="url(#sky)"/>
-  <g fill="#fff">
-    <circle cx="104" cy="96" r="3" opacity=".8"/>
-    <circle cx="176" cy="64" r="2" opacity=".6"/>
-    <circle cx="392" cy="84" r="3.5" opacity=".85"/>
-    <circle cx="430" cy="150" r="2" opacity=".5"/>
-    <circle cx="300" cy="52" r="2" opacity=".55"/>
+  <path d="M0 272c32 0 32-12 64-12s32 12 64 12 32-12 64-12 32 12 64 12 32-12 64-12 32 12 64 12 32-12 64-12 32 12 64 12V512H0z" fill="url(#sea)"/>
+  <g id="art">
+    <circle cx="120" cy="120" r="44" fill="#fff4c9" opacity=".9"/>
+    <!-- above the surface -->
+    <g clip-path="url(#above)"><g transform="translate(256 272) scale(1.2) translate(-256 -272) translate(-16 0)">
+<path d="M150 300q-30 6-44 34q30 4 56-20z" fill="#0b2a3d"/>
+<path d="M336 296q30 10 64 60q-44 8-80-40z" fill="#0b2a3d"/>
+<path d="M122 294l-22 10 26 4z" fill="#0b2a3d"/>
+<path d="M358 270q20-6 36-30" stroke="#0b2a3d" stroke-width="44" stroke-linecap="round" fill="none"/>
+<ellipse cx="416" cy="228" rx="46" ry="38" fill="#0b2a3d"/>
+<path d="M120 300C120 196 190 148 256 148S392 196 392 300Z" fill="#0b2a3d"/>
+<path d="M112 300h288" stroke="#0b2a3d" stroke-width="24" opacity="1" stroke-linecap="round"/>
+<g fill="none" stroke="#1d4a66" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+<path d="M222 186l34-18 34 18v40l-34 18-34-18z"/>
+<path d="M222 226l-40 16-24 46M290 226l40 16 24 46M256 244v44M222 186l-30-6M290 186l30-6"/>
+</g><path d="M372 222q44-22 90 0" stroke="#ff4d6d" stroke-width="10" fill="none"/>
+<circle cx="424" cy="220" r="18" fill="#bff0ff" stroke="#ff4d6d" stroke-width="8"/>
+<circle cx="430" cy="216" r="6" fill="#0b2a3d"/><path d="M424 246q14 8 26-2" stroke="#ff9a7a" stroke-width="6" fill="none" stroke-linecap="round"/></g></g>
+    <!-- below it: the same turtle, pale and shifted, as if refracted -->
+    <g clip-path="url(#below)" opacity=".8"><g transform="translate(8 6) skewX(-4)"><g transform="translate(256 272) scale(1.2) translate(-256 -272) translate(-16 0)">
+<path d="M150 300q-30 6-44 34q30 4 56-20z" fill="#bff0ff"/>
+<path d="M336 296q30 10 64 60q-44 8-80-40z" fill="#bff0ff"/>
+<path d="M122 294l-22 10 26 4z" fill="#bff0ff"/>
+<path d="M358 270q20-6 36-30" stroke="#bff0ff" stroke-width="44" stroke-linecap="round" fill="none"/>
+<ellipse cx="416" cy="228" rx="46" ry="38" fill="#bff0ff"/>
+<path d="M120 300C120 196 190 148 256 148S392 196 392 300Z" fill="#bff0ff"/>
+<path d="M112 300h288" stroke="#bff0ff" stroke-width="24" opacity="0" stroke-linecap="round"/>
+<g fill="none" stroke="#8fdcf2" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+<path d="M222 186l34-18 34 18v40l-34 18-34-18z"/>
+<path d="M222 226l-40 16-24 46M290 226l40 16 24 46M256 244v44M222 186l-30-6M290 186l30-6"/>
+</g><path d="M372 222q44-22 90 0" stroke="#ff4d6d" stroke-width="10" fill="none"/>
+<circle cx="424" cy="220" r="18" fill="#bff0ff" stroke="#ff4d6d" stroke-width="8"/>
+<circle cx="430" cy="216" r="6" fill="#8fdcf2"/><path d="M424 246q14 8 26-2" stroke="#8fdcf2" stroke-width="6" fill="none" stroke-linecap="round"/></g></g></g>
   </g>
-  <circle cx="256" cy="318" r="170" fill="url(#sun)"/>
-  <circle cx="256" cy="318" r="62" fill="#ffe7a8"/>
-
-  <!-- steam curling off the water -->
-  <g fill="none" stroke="#fff" stroke-linecap="round" filter="url(#soft)">
-    <path d="M150 262c-16-22 16-36 0-60s14-38 0-60" stroke-width="16" opacity=".6"/>
-    <path d="M362 250c-14-20 14-32 0-54s12-34 0-54" stroke-width="14" opacity=".5"/>
-  </g>
-
-  <!-- the pool -->
-  <path d="M0 318c32 0 32-14 64-14s32 14 64 14 32-14 64-14 32 14 64 14 32-14 64-14 32 14 64 14 32-14 64-14 32 14 64 14V512H0z" fill="url(#sea)"/>
-  <g stroke="url(#glint)" stroke-linecap="round">
-    <path d="M176 350h160" stroke-width="10"/>
-    <path d="M200 380h112" stroke-width="8" opacity=".75"/>
-    <path d="M226 406h60" stroke-width="6" opacity=".5"/>
-  </g>
-
-  <!-- swimmer, lit from behind -->
-  <g filter="url(#glow)" fill="#fff">
-    <path d="M178 322C170 198 340 160 410 300" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round"/>
-    <circle cx="292" cy="290" r="34"/>
-  </g>
-  <path d="M96 332c26 0 26-16 52-16s26 16 52 16 26-16 52-16 26 16 52 16 26-16 52-16 26 16 52 16" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round"/>
+  <path d="M0 272c32 0 32-12 64-12s32 12 64 12 32-12 64-12 32 12 64 12 32-12 64-12 32 12 64 12 32-12 64-12 32 12 64 12" fill="none" stroke="#fff" stroke-width="8" opacity=".9"/>
 </svg>

@@ -12,7 +12,7 @@
  *   apple-touch-icon.png  180, full-bleed: iOS rounds the corners itself
  *   icon-192.png          rounded, transparent corners ("any" in the manifest)
  *   icon-512.png          rounded, transparent corners ("any")
- *   icon-maskable-512.png full-bleed, for Android's adaptive shapes */
+ *   icon-maskable-512.png full-bleed with the artwork shrunk, for Android's adaptive shapes */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -38,6 +38,11 @@ const full = await fs.readFile(path.join(DIR, 'icon.svg'), 'utf8');
 const rounded = full.replace('<rect width="512" height="512"', '<rect width="512" height="512" rx="115"');
 if (rounded === full) throw new Error('icon.svg: background <rect> not found');
 await fs.writeFile(path.join(DIR, 'favicon.svg'), rounded);
+/* Android's adaptive shapes can crop to a circle 80% of the width, so the
+   maskable one gets the artwork shrunk into it; the water still runs to the
+   edges because it is outside #art. */
+const maskable = full.replace('<g id="art">', '<g id="art" transform="translate(256 272) scale(.8) translate(-256 -272)">');
+if (maskable === full) throw new Error('icon.svg: <g id="art"> not found');
 
 const chromium = await loadPlaywright();
 const browser = await chromium.launch();
@@ -52,5 +57,5 @@ const render = async (svg, size, file) => {
 await render(full, 180, 'apple-touch-icon.png');
 await render(rounded, 192, 'icon-192.png');
 await render(rounded, 512, 'icon-512.png');
-await render(full, 512, 'icon-maskable-512.png');
+await render(maskable, 512, 'icon-maskable-512.png');
 await browser.close();
