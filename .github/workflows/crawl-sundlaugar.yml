@@ -1,4 +1,4 @@
-# Reads the whole pool directory at sundlaugar.is once a week and, when it says
+# Reads the whole pool directory at sundlaugar.is every night and, when it says
 # something lib/poolinfo.js does not, opens a pull request with the difference.
 # Nothing is merged by this workflow: the PR is for a person to read.
 #
@@ -11,14 +11,15 @@
 #      out the day each pool was read, and writes the PR body.
 #   3. Only if something other than those dates moved, or there is a problem to
 #      look at, does a PR open. It is always on the branch crawl/sundlaugar, so
-#      a week with more changes updates the open PR rather than adding another;
+#      a night with more changes updates the open PR rather than adding another;
 #      once it is merged or closed, the next change opens a new one.
 #
-# Cadence: the cron line below, in UTC. Monday 05:17 is early morning in
-# Iceland; the odd minute keeps it off the top of the hour, when GitHub's
-# scheduler is busiest. "17 5 * * *" would be daily, "17 5 1 * *" monthly. A run
-# is about 140 page requests a second apart, a few minutes in all. It can also
-# be started by hand from the Actions tab (Run workflow).
+# Cadence: the cron line below, in UTC, which is Iceland's time all year. 03:17
+# every night, when nobody is updating the directory; the odd minute keeps it
+# off the top of the hour, when GitHub's scheduler is busiest. "17 3 * * 1"
+# would be weekly on Mondays, "17 3 1 * *" monthly. A run is about 140 page
+# requests a second apart, a few minutes in all. It can also be started by hand
+# from the Actions tab (Run workflow).
 #
 # GitHub has to be allowed to open the PR: Settings → Actions → General →
 # Workflow permissions → "Allow GitHub Actions to create and approve pull
@@ -28,7 +29,7 @@ name: Crawl sundlaugar.is
 
 on:
   schedule:
-    - cron: '17 5 * * 1'
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -61,7 +62,7 @@ jobs:
           node bin/diff-pool-info.mjs "$RUNNER_TEMP/poolinfo-before.mjs" lib/poolinfo.js \
             --report "$RUNNER_TEMP/crawl.json" > "$RUNNER_TEMP/changes.md"
           {
-            echo 'The weekly crawl of [sundlaugar.is](https://sundlaugar.is) found the directory saying something `lib/poolinfo.js` does not. Nothing here is merged until someone reads it.'
+            echo 'The nightly crawl of [sundlaugar.is](https://sundlaugar.is) found the directory saying something `lib/poolinfo.js` does not. Nothing here is merged until someone reads it.'
             echo
             cat "$RUNNER_TEMP/changes.md"
             echo

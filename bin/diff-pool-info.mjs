@@ -2,11 +2,11 @@
 /* Say what changed between two copies of lib/poolinfo.js, in words a person can
  * review: which pools the directory added or dropped, and for each pool that
  * changed, which details did and how. Written as Markdown, for the body of the
- * pull request the weekly crawl opens (.github/workflows/crawl-sundlaugar.yml).
+ * pull request the nightly crawl opens (.github/workflows/crawl-sundlaugar.yml).
  *
  * `fetched` is left out of the comparison. It is the day a pool was read, so a
- * crawl moves it for every pool every week, and a week in which that is all
- * that moved is a week with nothing to review.
+ * crawl moves it for every pool every night, and a night in which that is all
+ * that moved is a night with nothing to review.
  *
  * The problems bin/fetch-pool-info.mjs --report wrote go at the top: a name the
  * directory lists that lib/pools.js does not have is how a new pool shows up,
@@ -131,8 +131,8 @@ const unchanged = after.size - added.length - changed.length;
 const something = Boolean(report.problems.length || added.length || dropped.length || changed.length);
 md.push(`_${after.size} pools read: ${changed.length} changed, ${added.length} new, ${dropped.length} dropped, ${unchanged} unchanged._`);
 
-/* A pull request's body stops at 65,536 characters. A week in which that many
-   changed is a week to read the file's own diff anyway. */
+/* A pull request's body stops at 65,536 characters. A night in which that many
+   changed is one to read the file's own diff anyway. */
 let body = md.join('\n') + '\n';
 if (body.length > 60000) body = body.slice(0, 60000).replace(/\n[^\n]*$/, '') + '\n\n… cut short; the rest is in the diff of `lib/poolinfo.js`.\n';
 process.stdout.write(body);

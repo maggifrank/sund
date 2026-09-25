@@ -42,7 +42,7 @@
  *   node bin/fetch-pool-info.mjs --region reykjanes --cache data/raw   # keep the pages; reuse them next run
  *   node bin/fetch-pool-info.mjs --all --write --report run.json        # and say what went wrong, as JSON
  *
- * --report is for the weekly crawl (.github/workflows/crawl-sundlaugar.yml),
+ * --report is for the nightly crawl (.github/workflows/crawl-sundlaugar.yml),
  * which hands the problems — a name the directory has that lib/pools.js does
  * not, most of all — to bin/diff-pool-info.mjs to put in front of a person.
  */
