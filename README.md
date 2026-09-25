@@ -511,6 +511,18 @@ node bin/fetch-pool-info.mjs --all             # read it and print it
 node bin/fetch-pool-info.mjs --all --write     # then write it
 ```
 
+**It is read again every Monday on its own.** A scheduled workflow,
+[`crawl-sundlaugar.yml`](.github/workflows/crawl-sundlaugar.yml), runs the
+same command and compares the result with what is committed, leaving out the
+day each pool was read. When anything else moved — hours, prices, a phone
+number, a pool the directory has dropped — or the directory lists a name
+`lib/pools.js` does not have, which is how a new pool turns up, it opens a pull
+request on `crawl/sundlaugar` that lists the changes pool by pool. It never
+merges. A quiet week opens nothing. The cadence is the cron line at the top of
+the workflow, and it can be run by hand from the Actions tab. GitHub has to be
+allowed to open the PR: Settings → Actions → General → "Allow GitHub Actions to
+create and approve pull requests".
+
 The directory keeps its natural pools — Landbrotalaug, Reykjadalur, the tubs at
 Drangsnes — in a section of their own that its API does not serve, so those are
 listed from that section's sitemap instead. The sitemap mixes in the English
@@ -1050,6 +1062,8 @@ your count, and is a shared code rather than real per-user accounts.
 | `bin/check-pools-on-land.mjs` | check no pool is drawn in the sea — run by CI, independently of the generator |
 | `.github/workflows/pools-on-land.yml` | runs that check when the pools, the coast or the projection change |
 | `bin/fetch-pool-info.mjs` | read sundlaugar.is a region at a time into `lib/poolinfo.js` |
+| `bin/diff-pool-info.mjs` | say what changed between two copies of `lib/poolinfo.js`, for the weekly crawl's PR |
+| `.github/workflows/crawl-sundlaugar.yml` | read the whole directory every Monday and open a PR when it has changed |
 | `bin/fetch-pool-busyness.mjs` | average Reykjavík's gate counts into `lib/poolbusy.js` |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |
