@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Source for every Sund icon. Full-bleed on purpose: iOS and Android cut
+       their own shape out of it, so everything that matters stays inside the
+       maskable safe zone (a circle of radius 205 around the centre).
+       After editing, run `node bin/build-icons.mjs`. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fb4df"/>
+      <stop offset="1" stop-color="#0b3d5c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#sky)"/>
+  <g transform="translate(0 18)">
+    <!-- steam off a hot pool -->
+    <g fill="none" stroke="#fff" stroke-linecap="round">
+      <path d="M128 222c-12-16 12-26 0-44s10-28 0-42" stroke-width="14" opacity=".55"/>
+      <path d="M168 158c-10-14 10-22 0-38s8-24 0-36" stroke-width="12" opacity=".4"/>
+    </g>
+    <!-- swimmer: head, and an arm coming over in a crawl stroke -->
+    <path d="M188 306C184 184 346 150 404 288" fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round"/>
+    <circle cx="296" cy="268" r="32" fill="#fff"/>
+    <!-- water -->
+    <g fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round">
+      <path d="M112 318c24 0 24-18 48-18s24 18 48 18 24-18 48-18 24 18 48 18 24-18 48-18 24 18 48 18"/>
+      <path d="M112 378c24 0 24-18 48-18s24 18 48 18 24-18 48-18 24 18 48 18 24-18 48-18 24 18 48 18" opacity=".6"/>
+    </g>
+  </g>
+</svg>
