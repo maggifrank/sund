@@ -542,6 +542,15 @@ and under the price table are kept word for word, because they are the terms the
 prices are sold on, and a paraphrase that got one wrong would be a price the
 pool does not charge.
 
+**Natural pools get a card of their own.** A hot spring in a field has no
+hours, no prices and no facilities to tag, so everything a swimmer needs from
+its directory page — how warm the water is, which road it is off, whether any
+car gets there, whether there is a changing hut, what to mind — is in the
+paragraph the script does not copy. Those facts are kept by hand in
+`lib/poolguide.js`, checked against the directory pool by pool, with the
+directions written afresh in each of the three languages rather than copied.
+The page shows them first, as "About the pool", above the map.
+
 **Icelandic only, on purpose.** The directory has English pages too, but they
 are a separate copy and they have already drifted — Dalslaug's annual pass for
 over-67s is 4.000 kr on one and 4.150 kr on the other. So there is one source,
@@ -1036,6 +1045,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/poolmap.js` | the pool map — its marks, badges and zoom |
 | `lib/poolpage.js` | a pool's page and the map's list of them, shared by both pages |
 | `lib/poolinfo.js` | what sundlaugar.is says about each pool — generated, do not edit |
+| `lib/poolguide.js` | water, access and directions for natural pools, kept by hand from sundlaugar.is |
 | `lib/busychart.js` | the busy-times chart on a pool page |
 | `lib/poolbusy.js` | a typical week of visitors for Reykjavík's pools — generated, do not edit |
 | `lib/iceland.js` | the ISN93 / Lambert projection, the capital area's window and the map's geometry |

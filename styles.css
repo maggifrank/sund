@@ -1352,6 +1352,10 @@ table.hours tr.is-today td { border-radius: 0 8px 8px 0; }
 .contact-list a,
 .pool-links a { color: var(--accent); }
 
+.pool-directions { margin: 12px 0 0; font-size: 15px; line-height: 1.45; }
+.pool-cautions { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink-dim); }
+.pool-cautions li + li { margin-top: 4px; }
+
 .price-notes { margin-top: 8px; font-size: 13px; color: var(--ink-dim); }
 .price-notes summary { cursor: pointer; padding: 6px 0; }
 .price-notes p { margin: 6px 0 0; }
