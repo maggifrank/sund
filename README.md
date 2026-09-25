@@ -1025,6 +1025,8 @@ your count, and is a shared code rather than real per-user accounts.
 | `map.html` `map.js` | the map page — the private app only |
 | `pool.html` `pool.js` | a pool's page — the private app only |
 | `public/` | the public read-only pages — the counter, the map and a pool's page |
+| `icons/icon.svg` | the home screen icon — the source for everything else in `icons/` |
+| `manifest.webmanifest` | name and icons for "Add to Home Screen" |
 | `lib/state.js` | trips, settings and the break-even arithmetic |
 | `lib/api.js` | HTTP routing and validation, shared by both backends |
 | `lib/i18n.js` | Icelandic, English and Polish strings, plurals, dates, number formats |
@@ -1043,6 +1045,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `serve.js` | LXC backend — static files + API, file-backed, no dependencies |
 | `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
 | `bin/publish.mjs` | snapshot, build and deploy the public site |
+| `bin/build-icons.mjs` | render `icons/icon.svg` into the favicon, the Apple touch icon and the manifest PNGs |
 | `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from IS 50V, and check every pool is on land |
 | `bin/check-pools-on-land.mjs` | check no pool is drawn in the sea — run by CI, independently of the generator |
 | `.github/workflows/pools-on-land.yml` | runs that check when the pools, the coast or the projection change |
