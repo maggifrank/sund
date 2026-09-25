@@ -40,6 +40,11 @@
  *   node bin/fetch-pool-info.mjs --region hofudborgarsvaedid --write   # patch lib/poolinfo.js
  *   node bin/fetch-pool-info.mjs --all --write                         # every region
  *   node bin/fetch-pool-info.mjs --region reykjanes --cache data/raw   # keep the pages; reuse them next run
+ *   node bin/fetch-pool-info.mjs --all --write --report run.json        # and say what went wrong, as JSON
+ *
+ * --report is for the nightly crawl (.github/workflows/crawl-sundlaugar.yml),
+ * which hands the problems — a name the directory has that lib/pools.js does
+ * not, most of all — to bin/diff-pool-info.mjs to put in front of a person.
  */
 
 import fs from 'node:fs/promises';
@@ -57,6 +62,7 @@ const WRITE = argv.includes('--write');
 const ALL = argv.includes('--all');
 const WANTED = argv.reduce((out, a, i) => (a === '--region' ? [...out, argv[i + 1]] : out), []);
 const CACHE = argv.includes('--cache') ? path.resolve(argv[argv.indexOf('--cache') + 1]) : null;
+const REPORT = argv.includes('--report') ? path.resolve(argv[argv.indexOf('--report') + 1]) : null;
 
 if (!ALL && !WANTED.length) {
   console.error('say which regions: --region <slug> (repeatable), or --all');
@@ -740,6 +746,7 @@ for (const p of fetched) {
 for (const line of skipped) console.log(`\n  - ${line}`);
 for (const line of problems) console.log(`\n  ! ${line}`);
 console.log(`\n${fetched.length} pools read from ${asked.length} region(s), ${problems.length} problem(s)`);
+if (REPORT) await fs.writeFile(REPORT, JSON.stringify({ read: fetched.length, problems, skipped }, null, 2) + '\n');
 
 if (!WRITE) {
   console.log('nothing written; pass --write to put these into lib/poolinfo.js');

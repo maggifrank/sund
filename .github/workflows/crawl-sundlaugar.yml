@@ -1,0 +1,82 @@
+# Reads the whole pool directory at sundlaugar.is every night and, when it says
+# something lib/poolinfo.js does not, opens a pull request with the difference.
+# Nothing is merged by this workflow: the PR is for a person to read.
+#
+# How it decides:
+#   1. bin/fetch-pool-info.mjs --all --write rewrites lib/poolinfo.js from the
+#      directory, and --report notes what it could not keep — above all a pool
+#      the directory lists that lib/pools.js does not have, which is how a new
+#      pool shows up.
+#   2. bin/diff-pool-info.mjs compares that against the committed file, leaving
+#      out the day each pool was read, and writes the PR body.
+#   3. Only if something other than those dates moved, or there is a problem to
+#      look at, does a PR open. It is always on the branch crawl/sundlaugar, so
+#      a night with more changes updates the open PR rather than adding another;
+#      once it is merged or closed, the next change opens a new one.
+#
+# Cadence: the cron line below, in UTC, which is Iceland's time all year. 03:17
+# every night, when nobody is updating the directory; the odd minute keeps it
+# off the top of the hour, when GitHub's scheduler is busiest. "17 3 * * 1"
+# would be weekly on Mondays, "17 3 1 * *" monthly. A run is about 140 page
+# requests a second apart, a few minutes in all. It can also be started by hand
+# from the Actions tab (Run workflow).
+#
+# GitHub has to be allowed to open the PR: Settings → Actions → General →
+# Workflow permissions → "Allow GitHub Actions to create and approve pull
+# requests". A PR opened with the workflow's own token does not start other
+# workflows; none of them watch lib/poolinfo.js, so nothing is skipped.
+name: Crawl sundlaugar.is
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: crawl-sundlaugar
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read the directory
+        run: |
+          cp lib/poolinfo.js "$RUNNER_TEMP/poolinfo-before.mjs"
+          node bin/fetch-pool-info.mjs --all --write --report "$RUNNER_TEMP/crawl.json" > "$RUNNER_TEMP/crawl.log"
+          tail -n 40 "$RUNNER_TEMP/crawl.log"
+
+      - name: Compare with what is committed
+        id: diff
+        run: |
+          node bin/diff-pool-info.mjs "$RUNNER_TEMP/poolinfo-before.mjs" lib/poolinfo.js \
+            --report "$RUNNER_TEMP/crawl.json" > "$RUNNER_TEMP/changes.md"
+          {
+            echo 'The nightly crawl of [sundlaugar.is](https://sundlaugar.is) found the directory saying something `lib/poolinfo.js` does not. Nothing here is merged until someone reads it.'
+            echo
+            cat "$RUNNER_TEMP/changes.md"
+            echo
+            echo "Every pool's \`fetched\` date moves too; that is left out above. Made by [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) — see \`.github/workflows/crawl-sundlaugar.yml\`."
+          } > "$RUNNER_TEMP/pr-body.md"
+          cat "$RUNNER_TEMP/changes.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: crawl/sundlaugar
+          delete-branch: true
+          add-paths: lib/poolinfo.js
+          commit-message: Refresh pool details from sundlaugar.is
+          title: What sundlaugar.is says has changed
+          body-path: ${{ runner.temp }}/pr-body.md
