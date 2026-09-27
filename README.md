@@ -398,7 +398,28 @@ colours that pool here too — and then polls `/api/state` like any other view o
 the shared count. It never writes the cache back: the queue in there belongs to
 the page that owns the **+** button.
 
-### On the public site
+### The passport: stamps and a streak
+
+The map doubles as a pool passport. **Passport stamps**, above the list of pools
+still to go, is the other half of that list: every pool you have swum in, in the
+order you first reached it, each with the day of that first swim and how many
+swims it has had since. Each row opens the pool's page.
+
+Under the fraction, and under the last swim on the counter page, is a **weekly
+streak**: how many weeks in a row, Monday to Sunday, have had at least one swim.
+Weeks rather than days, because a daily streak breaks on the first rest day and
+means nothing after that. Every swim counts — card or not, pool or not — since
+the question is whether the swimming is regular, not whether it paid. The week
+under way has not had its chance yet, so a streak that reached last week is
+still alive, with a nudge to swim this week to keep it; two weeks without one
+and it is over. The longest run so far is shown beside it when it is not the
+current one.
+
+Neither is saved anywhere. Both are read off the trips already logged
+(`lib/passport.js`), so backdating a swim, deleting one or changing its pool in
+the history moves them at once. They are on the private app only: the public
+snapshot has no pool on any trip to stamp with.
+
 
 The public site has the same map, at `/map.html`, drawn by the same
 `lib/poolmap.js` — so the two cannot disagree about what has been swum in. What
@@ -718,6 +739,18 @@ then every 50th after that — and **break-even fills the screen**: cannons from
 both bottom corners, a burst over the counter, and paper falling from the top
 for a couple of seconds. That is the number the whole app is about, so it gets
 the whole screen.
+
+**Pools have parties of their own**, for the [passport](#the-passport-stamps-and-a-streak).
+The first swim at a pool you have never been to is a new stamp: a burst of
+confetti and a line saying *New pool unlocked: Salalaug*. The 10th, 25th, 50th
+and 100th swim at any one pool get the big confetti and *10th swim at
+Ásvallalaug*, and every 100th after that. These count every swim at the pool,
+card or not, since they are about where you swim, not what it cost. When one
+swim earns two parties, the bigger one's confetti wins and the pool's line is
+shown anyway. Putting a pool on a swim already in the history, which is how a
+backdated swim gets one, can unlock a pool too. Each pool's crossing is
+remembered on its own (`sund.poolCelebrated.v1`) and does not reset with the
+card.
 
 Some rules it follows, none of which are visible when they work:
 
@@ -1054,6 +1087,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/money.js` | currency per language, conversion and formatting |
 | `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
 | `lib/pooltable.js` | the visits-per-pool table, shared by both pages |
+| `lib/passport.js` | the map's stamps and the weekly swim streak — the private app only |
 | `lib/poolmap.js` | the pool map — its marks, badges and zoom |
 | `lib/poolpage.js` | a pool's page and the map's list of them, shared by both pages |
 | `lib/poolinfo.js` | what sundlaugar.is says about each pool — generated, do not edit |

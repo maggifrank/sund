@@ -17,7 +17,8 @@ import {
 } from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
-import { celebrateAdd, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
+import { weekStreak, streakText } from './lib/passport.js';
+import { celebrateAdd, celebratePool, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
 const TOKEN_KEY = 'sund.token';
@@ -164,7 +165,7 @@ async function poll({ force = false } = {}) {
 
 const el = (id) => document.getElementById(id);
 const ui = {
-  trips: el('trips'), lastSwim: el('last-swim'), plus: el('plus'), minus: el('minus'),
+  trips: el('trips'), lastSwim: el('last-swim'), streak: el('streak'), plus: el('plus'), minus: el('minus'),
   beLabel: el('be-label'),
   costPerTrip: el('cost-per-trip'), costPerTripSub: el('cost-per-trip-sub'),
   progressFill: el('progress-fill'), breakevenLine: el('breakeven-line'), breakevenNote: el('breakeven-note'),
@@ -530,6 +531,11 @@ function render() {
   ui.lastSwim.textContent = state.trips.length
     ? t(lang, 'counter.lastSwim', { date: formatDate(lang, tripAt(state.trips[state.trips.length - 1]), 'full') })
     : t(lang, 'counter.none');
+  /* Every swim, not just card ones: the streak asks whether the swimming is
+     regular, not whether it paid. See lib/passport.js. */
+  const streak = streakText(lang, weekStreak(state.trips));
+  ui.streak.hidden = streak === null;
+  ui.streak.textContent = streak ?? '';
   /* The big number is card swims only, so state the total outright rather than
      leaving it to be inferred from the difference — and say which of the two
      reasons kept each of the rest out, rather than lumping them together. */
@@ -630,13 +636,28 @@ function seasonLine(s) {
    flush() goes to the network but does not touch the queue before its first
    await — so this is the number the screen is about to show. */
 function logTrip(op, anchor) {
+  const poolId = op.pool?.id ?? null;
   const before = tripSplit(view()).counted;
+  const poolBefore = visitsAt(view(), poolId);
   enqueue(op);
   const state = view();
   celebrateAdd({
     before, after: tripSplit(state).counted, settings: state.settings,
-    anchor, counter: ui.trips
+    anchor, counter: ui.trips,
+    pool: poolId && { id: poolId, before: poolBefore, after: visitsAt(state, poolId), message: poolMessage(state, poolId) }
   });
+}
+
+/* The passport's side of a swim: how many there have been at one pool, and the
+   line that says what reaching a number there means. */
+const visitsAt = (state, id) => (id ? state.trips.filter((trip) => trip.pool === id).length : 0);
+
+function poolMessage(state, id) {
+  const name = state.pools.find((p) => p.id === id)?.name ??
+    allPools(state.pools).find((p) => p.id === id)?.name ?? id;
+  return (level, n) => (level === 'newPool'
+    ? t(lang, 'unlock.newPool', { name })
+    : t(lang, 'unlock.poolMilestone', { nth: ordinal(lang, n), name }));
 }
 
 ui.plus.addEventListener('click', () => {
@@ -752,7 +773,16 @@ function openPoolPicker(button) {
       ? allPools(view().pools).find((p) => p.id === select.value) ?? null
       : null;
     historySig = null;                       // the row must be rebuilt either way
+    const spot = select.getBoundingClientRect();
+    const before = visitsAt(view(), chosen?.id);
     enqueue({ kind: 'setPool', at, pool: chosen });
+    if (chosen) {
+      const state = view();
+      celebratePool({
+        id: chosen.id, before, after: visitsAt(state, chosen.id),
+        message: poolMessage(state, chosen.id), anchor: spot
+      });
+    }
   };
   select.addEventListener('change', commit);
   select.addEventListener('blur', () => { historySig = null; render(); });

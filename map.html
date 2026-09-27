@@ -31,6 +31,7 @@
     <div class="progress" role="img">
       <div id="progress-fill" class="progress-fill" style="width:0%"></div>
     </div>
+    <div id="streak" class="sub" hidden></div>
     <p id="off-map" class="note" hidden></p>
   </section>
 
@@ -54,6 +55,17 @@
     <p class="map-credit"><span data-i18n="map.creditCoast"></span>:
       <a href="https://www.natt.is/en/resources/open-data" target="_blank" rel="noopener">IS 50V, Náttúrufræðistofnun</a>
       · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="license noopener">CC BY 4.0</a></p>
+  </section>
+
+  <!-- The other half of the passport: the pools already swum in, in the order
+       they were first reached, each with the day it happened. -->
+  <section id="stamps-card" class="card history map-stamps">
+    <button id="stamps-toggle" class="disclosure" aria-expanded="false" aria-controls="stamps-panel">
+      <span class="label" data-i18n="map.stampsLabel"></span>
+      <span id="stamps-summary" class="sub"></span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div id="stamps-panel" hidden></div>
   </section>
 
   <section class="card history">

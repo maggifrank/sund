@@ -9,12 +9,13 @@
    page has no business overwriting it. */
 
 import { emptyState, normalize, applyQueue } from './lib/state.js';
-import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
+import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import {
   poolRows, placeable, mapHTML, mapSignature, bindMapTooltip, bindMapZoom
 } from './lib/poolmap.js';
 import { renderRegionList, poolLinkRow, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { poolHref } from './lib/pools.js';
+import { weekStreak, streakText, stamps } from './lib/passport.js';
 import { attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
@@ -88,7 +89,8 @@ function askForToken() {
 const el = (id) => document.getElementById(id);
 const ui = {
   back: el('back'), langSelect: el('lang-select'),
-  visited: el('visited'), progressFill: el('progress-fill'), offMap: el('off-map'),
+  visited: el('visited'), progressFill: el('progress-fill'), offMap: el('off-map'), streak: el('streak'),
+  stampsToggle: el('stamps-toggle'), stampsPanel: el('stamps-panel'), stampsSummary: el('stamps-summary'),
   country: el('country'),
   todoToggle: el('todo-toggle'), todoPanel: el('todo-panel'), todoSummary: el('todo-summary'),
   pagesToggle: el('pages-toggle'), pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary')
@@ -121,6 +123,7 @@ function setLang(next) {
   applyStaticStrings();
   mapSig = null;          // the tooltips are written in words; force a rebuild
   todoSig = null;
+  stampsSig = null;
   pagesSig = null;
   render();
 }
@@ -151,6 +154,38 @@ function renderPages(rows) {
   if (ui.pagesPanel.hidden || sig === pagesSig) return;
   pagesSig = sig;
   renderRegionList(ui.pagesPanel, lang, rows);
+}
+
+/* ---------- stamps ---------- */
+
+/* The pools already swum in, in the order they were first reached, each row the
+   same link the lists below use, with the day of the first swim as its tag and
+   the number of swims as its count. */
+let stampsSig = null;
+
+function renderStamps(state, rows) {
+  const names = new Map(rows.map((row) => [row.id, row.name]));
+  const list = stamps(state.trips, names);
+  ui.stampsSummary.textContent = plural(lang, list.length, 'pool');
+
+  const sig = lang + '|' + list.map((s) => `${s.id}:${s.name}:${s.first}:${s.visits}`).join(',');
+  if (ui.stampsPanel.hidden || sig === stampsSig) return;
+  stampsSig = sig;
+
+  if (!list.length) {
+    ui.stampsPanel.innerHTML = `<p class="pool-empty">${t(lang, 'map.stampsEmpty')}</p>`;
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const s of list) {
+    frag.append(poolLinkRow(lang, {
+      id: s.id,
+      name: s.name,
+      visits: s.visits,
+      tag: t(lang, 'map.stampFirst', { date: formatDate(lang, s.first, 'compact') })
+    }));
+  }
+  ui.stampsPanel.replaceChildren(frag);
 }
 
 /* ---------- what is left ---------- */
@@ -190,7 +225,8 @@ function renderTodo(rows) {
 /* ---------- render ---------- */
 
 function render() {
-  const rows = poolRows(view());
+  const state = view();
+  const rows = poolRows(state);
   const done = rows.filter((row) => row.visits > 0).length;
   const unplaced = rows.filter((row) => !placeable(row)).length;
 
@@ -212,7 +248,12 @@ function render() {
     ? ''
     : t(lang, 'map.offMap', { pools: plural(lang, unplaced, 'pool') });
 
+  const streak = streakText(lang, weekStreak(state.trips));
+  ui.streak.hidden = streak === null;
+  ui.streak.textContent = streak ?? '';
+
   renderMaps(rows);
+  renderStamps(state, rows);
   renderTodo(rows);
   renderPages(rows);
 }
@@ -232,6 +273,13 @@ ui.todoToggle.addEventListener('click', () => {
   ui.todoPanel.hidden = !open;
   ui.todoToggle.setAttribute('aria-expanded', String(open));
   if (open) { todoSig = null; render(); }
+});
+
+ui.stampsToggle.addEventListener('click', () => {
+  const open = ui.stampsPanel.hidden;
+  ui.stampsPanel.hidden = !open;
+  ui.stampsToggle.setAttribute('aria-expanded', String(open));
+  if (open) { stampsSig = null; render(); }
 });
 
 ui.pagesToggle.addEventListener('click', () => {
@@ -254,6 +302,7 @@ const countryZoom = bindMapZoom(ui.country, {
 /* The same borrowed tick every other control in the app has, on the things here
    that can be pressed. */
 attachTapHaptics(ui.back, { radius: '10px' });
+attachTapHaptics(ui.stampsToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHaptics(ui.todoToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHaptics(ui.pagesToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHapticsAll(document.querySelectorAll('.map-zoom-btn'), { radius: '8px' });
