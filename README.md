@@ -740,6 +740,18 @@ both bottom corners, a burst over the counter, and paper falling from the top
 for a couple of seconds. That is the number the whole app is about, so it gets
 the whole screen.
 
+**Pools have parties of their own**, for the [passport](#the-passport-stamps-and-a-streak).
+The first swim at a pool you have never been to is a new stamp: a burst of
+confetti and a line saying *New pool unlocked: Salalaug*. The 10th, 25th, 50th
+and 100th swim at any one pool get the big confetti and *10th swim at
+Ásvallalaug*, and every 100th after that. These count every swim at the pool,
+card or not, since they are about where you swim, not what it cost. When one
+swim earns two parties, the bigger one's confetti wins and the pool's line is
+shown anyway. Putting a pool on a swim already in the history, which is how a
+backdated swim gets one, can unlock a pool too. Each pool's crossing is
+remembered on its own (`sund.poolCelebrated.v1`) and does not reset with the
+card.
+
 Some rules it follows, none of which are visible when they work:
 
 - **Only trips that move the counted number can be a milestone.** A swim
