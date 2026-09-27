@@ -1,4 +1,5 @@
 # Pulls and restarts Sund if the repo has moved. Triggered by sund-update.timer.
+# Installed by deploy/install-updater.sh — re-run that after changing this file.
 [Unit]
 Description=Update Sund from git
 After=network-online.target
@@ -6,9 +7,18 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/sund/deploy/sund-update.sh
+# The installed copy, root-owned and outside the checkout, so a push cannot
+# change what root runs. Never point this back at /opt/sund/deploy/.
+ExecStart=/usr/local/sbin/sund-update
 Environment=SUND_REPO=/opt/sund
 Environment=SUND_URL=http://127.0.0.1:8080
-# Needs to write to /opt/sund and call systemctl, so it runs as root — unlike
-# sund.service itself, which is a locked-down DynamicUser.
+# Root only to call systemctl and to drop to sund-build with runuser; every git
+# command runs as sund-build, which owns the checkout.
 User=root
+# Root's failed-revision mark lives here, never in the checkout.
+StateDirectory=sund-update
+StateDirectoryMode=0700
+# sund.service runs as a different user and must still read what git writes.
+UMask=0022
+PrivateTmp=true
+ProtectHome=true

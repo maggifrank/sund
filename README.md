@@ -906,9 +906,10 @@ your swim bag — points at the container's IP and shares one count.
 
 The count lives in `/var/lib/sund/state.json`, not in the repo. Back up that file.
 
-Install `deploy/sund-update.timer` as well and the container polls GitHub every
+Run `deploy/install-updater.sh` as well and the container polls GitHub every
 five minutes, deploying anything you push — with a health check and automatic
-rollback if the new revision won't start. See [DEPLOY.md](DEPLOY.md).
+rollback if the new revision won't start. Git runs as a separate `sund-build`
+user, never as root. See [DEPLOY.md](DEPLOY.md).
 
 ## The public read-only site
 
@@ -1111,5 +1112,6 @@ your count, and is a shared code rather than real per-user accounts.
 | `bin/fetch-pool-busyness.mjs` | average Reykjavík's gate counts into `lib/poolbusy.js` |
 | `deploy/sund.service` | the app |
 | `deploy/sund-update.*` | poll GitHub every 5 min, deploy with rollback |
+| `deploy/install-updater.sh` | run by hand as root: create `sund-build`, install the updater outside the repo |
 | `deploy/sund-publish.*` | publish the public snapshot every 15 min |
 | `DEPLOY.md` | LXC deployment runbook |

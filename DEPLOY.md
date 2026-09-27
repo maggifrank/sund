@@ -178,30 +178,44 @@ there is nothing standing there at all.
 
 ## Updating
 
-Manually:
+The checkout belongs to the `sund-build` user once the updater is installed
+(below), so pull as that user, not as root — git refuses to work as root in a
+directory someone else owns, and it should:
 
 ```
-cd /opt/sund && git pull && systemctl restart sund
+runuser -u sund-build -- git -C /opt/sund pull --ff-only && systemctl restart sund
 ```
 
-**Code changes deploy themselves; unit files do not.** The updater pulls the
-repo and restarts the service, but never touches `/etc/systemd/system`. After a
-commit that changes anything under `deploy/`, copy it across by hand:
+Before the updater is installed, a plain `cd /opt/sund && git pull && systemctl
+restart sund` does the same.
+
+**Code changes deploy themselves; unit files and the updater do not.** The
+updater pulls the repo and restarts the service, but never touches
+`/etc/systemd/system` or its own installed copy. After a commit that changes
+anything under `deploy/`, copy it across by hand:
 
 ```
 cp /opt/sund/deploy/<changed-unit> /etc/systemd/system/ && systemctl daemon-reload
 ```
 
+For `sund-update.sh`, `sund-update.service` or `sund-update.timer`, re-run the
+installer instead (next section).
+
 ### Automatically
 
 `sund-update.timer` checks GitHub every 5 minutes and deploys anything new.
-Install it once:
+Install it once, as root, after reading the script — it is the one step where
+something from the repo runs as root, which is why nothing runs it for you:
 
 ```
-cp /opt/sund/deploy/sund-update.service /opt/sund/deploy/sund-update.timer /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now sund-update.timer
+less /opt/sund/deploy/install-updater.sh
+/opt/sund/deploy/install-updater.sh
 ```
+
+It creates a `sund-build` system user and gives it `/opt/sund`, copies
+`deploy/sund-update.sh` to `/usr/local/sbin/sund-update` (root-owned, mode 755),
+installs `sund-update.service` and `.timer`, and enables the timer. It is safe to
+re-run, and re-running it is how a change to the updater takes effect.
 
 From then on, pushing to `main` from your laptop puts the change on the
 container within five minutes. The container polls GitHub rather than GitHub
@@ -214,13 +228,12 @@ previous revision and that revision is recorded as failed, so a bad push
 restarts the service once rather than every five minutes forever — push a fix
 and the next run picks it up and clears the mark.
 
-A successful update also writes to `publish-trigger`, the file the publisher
-watches, so a code change that alters what the **public** page renders reaches
+A successful update also starts `sund-publish.service` if the publisher is
+installed, so a code change that alters what the **public** page renders reaches
 it in seconds rather than waiting on the six-hourly safety net. New coordinates
 in `lib/pools.js` are the case that showed this up: the public map went on
-drawing the old survey until somebody happened to log a swim. If the publisher
-is not installed, the write goes to a file nothing is watching and costs
-nothing; the run itself is a no-op when the built site is genuinely unchanged.
+drawing the old survey until somebody happened to log a swim. The run itself is
+a no-op when the built site is genuinely unchanged.
 
 If you have edited files directly in `/opt/sund`, the update refuses to
 fast-forward and leaves both your changes and the running service alone. Commit
@@ -237,6 +250,55 @@ journalctl -u sund-update -n 50 --no-pager
 ```
 
 To pause automatic deploys: `systemctl disable --now sund-update.timer`.
+
+### What runs as root, and what doesn't
+
+Nothing that comes from the repo runs as root. The split:
+
+| | runs as | where it lives |
+|---|---|---|
+| `git fetch`, `merge --ff-only`, `rev-parse`, `reset --hard` on rollback | `sund-build` | owns `/opt/sund` |
+| the updater script itself | root | `/usr/local/sbin/sund-update`, outside the repo |
+| `systemctl restart sund`, starting the publisher, the health-check `curl` | root | — |
+| the failed-revision mark | root | `/var/lib/sund-update/`, mode 700 |
+| the app | a `DynamicUser` | reads `/opt/sund`, writes only `/var/lib/sund` |
+
+The updater drops to `sund-build` with `runuser` for every git command, and
+checks that the revisions it gets back are 40 hex characters before using them.
+`sund-build` is deliberately not the app's user: the app cannot rewrite its own
+code, and the build user cannot read the count or the access code.
+
+Root never writes inside a directory another user controls. The failed-revision
+mark used to live in `/opt/sund/.git`, and the updater used to nudge the
+publisher by writing to `publish-trigger` in the app's state directory; either
+file could have been swapped for a symlink to, say, `/etc/shadow`, and root
+would have overwritten it. The mark now lives in systemd's `StateDirectory`,
+and the publisher is started with `systemctl` instead.
+
+What this does not protect against: a malicious push still runs as the app's own
+user when the app restarts, and can read and change the count and see
+`SUND_TOKEN`. It can no longer get root or leave anything behind that survives
+a revert. Protecting the GitHub account (2FA, few collaborators, few apps with
+write access) is still the first line of defence.
+
+### Moving from the old root updater
+
+Before this change `sund-update.service` ran `/opt/sund/deploy/sund-update.sh`
+straight out of the checkout, as root, so any push could rewrite what root ran.
+If the container was set up that way, do this once, as root:
+
+```
+git -C /opt/sund pull --ff-only   # still root's checkout at this point; a no-op if the old timer got there first
+/opt/sund/deploy/install-updater.sh
+systemctl start sund-update && journalctl -u sund-update -n 20 --no-pager
+```
+
+Until you do, automatic deploys stop. The new script checks, before doing
+anything, that it is running from `/usr/local/sbin` rather than the checkout,
+that `sund-build` exists and owns `/opt/sund` and its `.git`, and that its state
+directory is root's. If any of that is wrong it logs `re-run
+deploy/install-updater.sh as root` and exits without touching the repo or the
+service, so the old unit cannot keep deploying through a half-migrated setup.
 
 ## Publishing the public read-only site
 
