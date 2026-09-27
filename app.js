@@ -17,6 +17,7 @@ import {
 } from './lib/chart.js';
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
+import { weekStreak, streakText } from './lib/passport.js';
 import { celebrateAdd, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
@@ -164,7 +165,7 @@ async function poll({ force = false } = {}) {
 
 const el = (id) => document.getElementById(id);
 const ui = {
-  trips: el('trips'), lastSwim: el('last-swim'), plus: el('plus'), minus: el('minus'),
+  trips: el('trips'), lastSwim: el('last-swim'), streak: el('streak'), plus: el('plus'), minus: el('minus'),
   beLabel: el('be-label'),
   costPerTrip: el('cost-per-trip'), costPerTripSub: el('cost-per-trip-sub'),
   progressFill: el('progress-fill'), breakevenLine: el('breakeven-line'), breakevenNote: el('breakeven-note'),
@@ -530,6 +531,11 @@ function render() {
   ui.lastSwim.textContent = state.trips.length
     ? t(lang, 'counter.lastSwim', { date: formatDate(lang, tripAt(state.trips[state.trips.length - 1]), 'full') })
     : t(lang, 'counter.none');
+  /* Every swim, not just card ones: the streak asks whether the swimming is
+     regular, not whether it paid. See lib/passport.js. */
+  const streak = streakText(lang, weekStreak(state.trips));
+  ui.streak.hidden = streak === null;
+  ui.streak.textContent = streak ?? '';
   /* The big number is card swims only, so state the total outright rather than
      leaving it to be inferred from the difference — and say which of the two
      reasons kept each of the rest out, rather than lumping them together. */

@@ -158,6 +158,18 @@ body {
       "history history"
       "pages   pages";
   }
+  /* The private map has the passport's stamps above the lists. The public one
+     has no per-trip pools to stamp with, so it keeps the template above rather
+     than carrying an empty row and the gap either side of it. */
+  .app--map:has(.map-stamps) {
+    grid-template-areas:
+      "head    head"
+      "counter counter"
+      "country country"
+      "stamps  stamps"
+      "history history"
+      "pages   pages";
+  }
 
   /* A pool's page is the dashboard's board again — two columns, tiles moving
      whole — for the same reasons the note above gives. The hours and the
@@ -183,6 +195,7 @@ body {
      panel. */
   #history-panel,
   #history-body,
+  #stamps-panel,
   #todo-panel,
   #pages-panel { max-width: 760px; margin-inline: auto; }
 
@@ -213,6 +226,7 @@ body {
 /* A second full-width list on the map's board. It is a .history for the look,
    and has to be told it does not share that one's place in the grid. */
 .map-pages      { grid-area: pages; }
+.map-stamps     { grid-area: stamps; }
 
 /* Wraps rather than squeezes: the controls on the right are a sync pill whose
    width is whatever the status sentence happens to be, and on the narrowest
@@ -1220,6 +1234,7 @@ label.pool-pick {
     conic-gradient(var(--map-done) 0 32%, var(--bg-2) 32% 35%, var(--map-todo) 35% 97%, var(--bg-2) 97%);
 }
 
+#stamps-panel,
 #todo-panel {
   max-height: 55vh;
   overflow-y: auto;
