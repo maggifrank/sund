@@ -50,23 +50,16 @@ drawn from `lib/pools.js`, so add it there too for it to show up publicly.
 
 A pool's page shows its address, hours, prices and facilities from
 `pool_info`. The built-in pools get theirs from sundlaugar.is through the seed.
-For a pool added at `/admin/`, the admin page asks the `pool-details` Edge
-Function (`functions/pool-details/index.ts`) to look it up on the web with
-Claude, and saves the answer with `set_pool_info()` under the admin's own
-sign-in. It runs on Add, and on Merge into a pool with no details. The admin
-page also lists every pool without details, with a Look up button each.
+For a pool added at `/admin/`, the admin page looks it up on OpenStreetMap
+(`lib/osmlookup.js`: Overpass for the swimming places mapped near it, Nominatim
+for a missing address) and saves what it finds with `set_pool_info()` under
+the admin's own sign-in. It runs on Add, and on Merge into a pool with no
+details. The admin page also lists every pool without details, with a Look up
+button each.
 
-The function checks that the caller is an admin before doing anything, and
-holds no database key. It needs one secret. To set it up in the dashboard:
-
-1. Make an API key at https://console.anthropic.com (Settings → API keys).
-2. Edge Functions → Secrets: add `ANTHROPIC_API_KEY` with that key.
-3. Edge Functions → Deploy a new function → Via editor: name it
-   `pool-details`, paste in `functions/pool-details/index.ts`, and deploy.
-
-Or with the CLI: `supabase secrets set ANTHROPIC_API_KEY=…` and
-`supabase functions deploy pool-details`. Each lookup runs a handful of web
-searches, so it costs some cents on the Anthropic account.
+It is free and needs no key. OpenStreetMap rarely has prices, and its hours are
+only as current as its last edit, so check the pool's page afterwards. The page
+credits OpenStreetMap (ODbL), as its licence requires.
 
 ## Testing it
 

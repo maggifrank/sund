@@ -1,7 +1,7 @@
 -- Pool details from the admin page. When an admin adds a pool from a
--- suggestion (or merges one into a pool with no details), /admin/ asks the
--- pool-details Edge Function to look the pool up on the web and saves what it
--- found here, under the admin's own sign-in. Nobody else can write pool_info.
+-- suggestion (or merges one into a pool with no details), /admin/ looks the
+-- pool up on OpenStreetMap (lib/osmlookup.js) and saves what it found here,
+-- under the admin's own sign-in. Nobody else can write pool_info.
 create or replace function public.set_pool_info(p_pool text, p_info jsonb)
 returns void
 language plpgsql

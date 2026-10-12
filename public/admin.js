@@ -6,11 +6,12 @@
      Reject  stays private to the person who named it
 
    Add and merge move every swim logged at the place to the pool. A pool that
-   ends up with no details (address, hours, prices) is looked up on the web by
-   the pool-details Edge Function, and what it finds is saved with
+   ends up with no details (address, hours, contacts) is looked up on
+   OpenStreetMap (lib/osmlookup.js), and what it finds is saved with
    set_pool_info(). */
 
 import * as cloud from '../lib/cloud.js';
+import { lookUpOsm } from '../lib/osmlookup.js';
 
 const list = document.getElementById('admin-list');
 const status = document.getElementById('admin-status');
@@ -124,7 +125,7 @@ function detailsRow(id) {
   const button = node('button', { type: 'button', className: 'ghost-btn', textContent: state === 'busy' ? 'Looking up…' : 'Look up' });
   button.disabled = state === 'busy';
   button.addEventListener('click', () => lookUp(id));
-  const said = state === 'busy' ? ' · searching the web, this takes a minute or two'
+  const said = state === 'busy' ? ' · searching OpenStreetMap'
     : state ? ` · ${state}` : '';
   return node('li', {}, node('span', {}, node('strong', { textContent: name }), ` ${id}${said}`), button);
 }
@@ -135,12 +136,12 @@ function drawDetails() {
 }
 
 async function loadDetails() {
-  const pools = await cloud.rest('GET', 'pools?select=id,name,pool_info(pool_id)&order=name', { anon: true });
+  const pools = await cloud.rest('GET', 'pools?select=id,name,lat,lon,pool_info(pool_id)&order=name', { anon: true });
   const now = new Set();
   for (const p of pools) {
     if ([p.pool_info].flat().filter(Boolean).length) continue;
     now.add(p.id);
-    if (!missing.has(p.id)) missing.set(p.id, { name: p.name, state: null });
+    if (!missing.has(p.id)) missing.set(p.id, { name: p.name, lat: p.lat, lon: p.lon, state: null });
   }
   for (const id of missing.keys()) if (!now.has(id)) missing.delete(id);
   drawDetails();
@@ -152,12 +153,16 @@ async function lookUp(id) {
   entry.state = 'busy';
   drawDetails();
   try {
-    const { info } = await cloud.callFunction('pool-details', { pool: id });
-    await cloud.rpc('set_pool_info', { p_pool: id, p_info: info });
-    missing.delete(id);
-    say(`Saved details for ${entry.name}. Check them on its page: /pool.html?id=${id}`);
+    const info = await lookUpOsm(entry);
+    if (info) {
+      await cloud.rpc('set_pool_info', { p_pool: id, p_info: info });
+      missing.delete(id);
+      say(`Saved details for ${entry.name} from OpenStreetMap. Check them on its page: /pool.html?id=${id}`);
+    } else {
+      entry.state = 'nothing on OpenStreetMap near it';
+    }
   } catch (err) {
-    entry.state = `not found: ${err.message}`;
+    entry.state = `lookup failed: ${err.message}`;
   }
   drawDetails();
 }
