@@ -675,8 +675,23 @@ ui.plus.addEventListener('click', () => {
   }
   logTrip(op, ui.plus);
 });
+/* "{date} · {pool}" for a trip, for the delete confirmations: naming the swim
+   is what lets someone spot that they tapped the wrong row. */
+function tripLabel(state, at) {
+  const trip = state.trips.find((x) => tripAt(x) === at);
+  const date = formatDate(lang, new Date(at), 'day');
+  const pool = trip?.pool ? (state.pools.find((p) => p.id === trip.pool)?.name ?? trip.pool) : null;
+  return pool ? `${date} · ${pool}` : date;
+}
+
+function confirmRemove(at) {
+  return confirm(t(lang, 'history.removeConfirm', { trip: tripLabel(view(), at) }));
+}
+
 ui.minus.addEventListener('click', () => {
-  if (!view().trips.length) return;
+  const trips = view().trips;
+  if (!trips.length) return;
+  if (!confirmRemove(tripAt(trips[trips.length - 1]))) return;
   enqueue({ kind: 'remove' });
   celebrateRemove({ anchor: ui.minus, counter: ui.trips });
 });
@@ -736,6 +751,7 @@ ui.historyBody.addEventListener('click', (e) => {
     /* Measured before the enqueue: that call re-renders the list, and the ×
        that was tapped is no longer in the document to be measured after it. */
     const spot = del.getBoundingClientRect();
+    if (!confirmRemove(del.dataset.at)) return;
     enqueue({ kind: 'removeAt', at: del.dataset.at });
     celebrateRemove({ anchor: spot, counter: ui.trips });
     return;
