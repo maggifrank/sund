@@ -43,7 +43,9 @@ select t.ok((select count(*) from public.pool_info) >= 100, 'the seed loads the 
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
 
-insert into public.profiles (username, display_name, public_page) values ('magnus', 'Magnús', true);
+insert into public.profiles (username, display_name, public_page, settings) values ('magnus', 'Magnús', true,
+  '{"membership": 36400, "cardPrice": 14000, "cardTrips": 30, "seasonStart": "2026-08-23",
+    "seasonEnd": "2027-08-23", "cardPools": ["sudurbaejarlaug", "asvallalaug"]}');
 select t.fails($$insert into public.profiles (user_id, username, is_admin) values (auth.uid(), 'x-admin', true)$$,
                '42501', 'nobody can make themselves an admin on signup');
 select t.fails($$update public.profiles set is_admin = true$$, '42501', 'nobody can make themselves an admin later');
@@ -123,6 +125,29 @@ insert into public.trips (at, client_id) select now(), gen_random_uuid() from ge
 select t.fails($$insert into public.trips (at, client_id) values (now(), gen_random_uuid())$$,
                '54000', 'the 51st swim in a day is refused');
 
+select t.fails($$select public.import_trips('[{"at": "2025-01-01T12:00:00Z"}]')$$, '55000',
+               'a history can only be imported into an empty account');
+
+-- ------------------------------------------------------------ importing a history
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000d', 'new@example.com');
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000d';
+insert into public.profiles (username) values ('newcomer');
+select t.ok(public.import_trips((select jsonb_agg(jsonb_build_object(
+              'at', '2025-01-01T12:00:00Z'::timestamptz + make_interval(days => i),
+              'pool_id', case when i % 2 = 0 then 'laugardalslaug' else 'no-such-pool' end,
+              'place_id', '30000000-0000-0000-0000-00000000000a'))
+            from generate_series(1, 120) i)) = 120,
+            'a whole history imports at once, past the daily limit');
+select t.ok((select count(*) from public.trips where pool_id = 'laugardalslaug') = 60
+            and (select count(*) from public.trips where pool_id is null and place_id is null) = 60,
+            'an import keeps shared pools and drops unknown pools and other people''s places');
+insert into public.trips (at, client_id) select now(), gen_random_uuid() from generate_series(1, 50);
+select t.ok((select count(*) from public.trips) = 170, 'an imported history does not use up today''s swims');
+select t.fails($$insert into public.trips (at, client_id) values (now(), gen_random_uuid())$$,
+               '54000', 'the daily limit still holds after an import');
+
 -- ------------------------------------------------------------ as anyone
 reset role;
 set role anon;
@@ -132,7 +157,14 @@ select t.ok((select count(*) from public.pools) >= 127, 'anyone can read the poo
 select t.fails($$select * from public.trips$$, '42501', 'anyone else cannot read swims at all');
 select t.fails($$select * from public.profiles$$, '42501', 'anyone else cannot read profiles');
 
-select t.ok((public.public_profile('magnus') ->> 'total')::int = 5, 'the public page counts every swim');
+select t.ok((public.public_profile('magnus') #>> '{totals,all}')::int = 5, 'the public page counts every swim');
+select t.ok(public.public_profile('magnus') -> 'totals' = '{"all": 5, "counted": 3, "offCard": 2, "outsideSeason": 0}',
+            'the public page splits the swims by what the card covers');
+select t.ok(public.public_profile('magnus') #> '{settings,cardPools}' = 'null',
+            'the public page does not say which pools the card covers');
+select t.ok(public.public_profile('magnus') -> 'trips' = '[]', 'the public page lists no swims');
+select t.ok((select sum((r ->> 'count')::int) from jsonb_array_elements(public.public_profile('magnus') -> 'poolTable') r) = 5,
+            'the public pool table adds up to every swim');
 select t.ok(public.public_profile('magnus') -> 'byMonth' = '{"2026-09": 5}', 'the public page counts swims per month');
 select t.ok(jsonb_array_length(public.public_profile('magnus') -> 'byWeekday') = 7, 'the public page counts swims per weekday');
 select t.ok(public.public_profile('magnus')::text !~ '2026-09-\d\d[T ]\d', 'the public page has no swim dates or times');
