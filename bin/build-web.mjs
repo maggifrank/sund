@@ -67,13 +67,17 @@ const SITES = {
     ['pool.html', 'pool.html'],
     ['pool.js', 'pool.js']
   ],
+  /* map.htm and pool.htm, not .html: Netlify answers a request for a .html
+     file by redirecting to the address without it, and behind the rewrite
+     below that address is /_u/map, which is nobody's page. The pages still
+     link to map.html and pool.html; _redirects sends those here. */
   _u: [
     ...SHARED,
     ['public/index.html', 'index.html'],
     ['public/app.js', 'app.js'],
-    ['public/map.html', 'map.html'],
+    ['public/map.html', 'map.htm'],
     ['public/map.js', 'map.js'],
-    ['public/pool.html', 'pool.html'],
+    ['public/pool.html', 'pool.htm'],
     ['public/pool.js', 'pool.js']
   ]
 };
@@ -97,8 +101,12 @@ const homePool = (html) => html
    trailing slash, so that rule caught /name/ too and sent it to itself
    forever. /:user/* takes /name as well as /name/, and the page adds the
    slash itself (userSlash) so its relative links have the right base. */
-const REDIRECTS = `/map.html     /             301
-/:user/*      /_u/:splat    200
+const REDIRECTS = `/map.html          /                301
+/:user/map.html    /_u/map.htm      200
+/:user/map         /_u/map.htm      200
+/:user/pool.html   /_u/pool.htm     200
+/:user/pool        /_u/pool.htm     200
+/:user/*           /_u/:splat       200
 `;
 
 /* First thing in a public page's <head>: /name becomes /name/ before anything
@@ -110,7 +118,7 @@ async function copy(list, dir, transform) {
   for (const [from, to] of list) {
     const dest = path.join(dir, to);
     await fs.mkdir(path.dirname(dest), { recursive: true });
-    if (to.endsWith('.html')) {
+    if (/\.html?$/.test(to)) {
       await fs.writeFile(dest, cloudPage(transform(to, await fs.readFile(path.join(ROOT, from), 'utf8'))));
     } else {
       await fs.copyFile(path.join(ROOT, from), dest);

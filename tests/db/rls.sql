@@ -174,6 +174,19 @@ select t.ok(public.public_profile('magnus') -> 'byMonth' = '{"2026-09": 5}', 'th
 select t.ok(jsonb_array_length(public.public_profile('magnus') -> 'byWeekday') = 7, 'the public page counts swims per weekday');
 select t.ok(public.public_profile('magnus')::text !~ '2026-09-\d\d[T ]\d', 'the public page has no swim dates or times');
 select t.ok(public.public_profile('magnus')::text !~ '64\.14|21\.96', 'the public page has no private place positions');
+reset role;
+insert into public.trips (user_id, at, place_id, client_id)
+  values ('00000000-0000-0000-0000-00000000000a', '2026-09-25 12:00+00', '30000000-0000-0000-0000-00000000000b', gen_random_uuid());
+set role anon;
+select t.ok((select r from jsonb_array_elements(public.public_profile('magnus') -> 'poolTable') r
+             where r ->> 'name' = 'Odense Havnebad') ->> 'abroad' = 'true',
+            'the public page says a place abroad is abroad');
+select t.ok((select count(*) from jsonb_array_elements(public.public_profile('magnus') -> 'poolTable') r
+             where r ? 'abroad') = 1, 'and only that one');
+select t.ok(public.public_profile('magnus')::text !~ '55\.40|10\.37', 'but not where it is');
+reset role;
+delete from public.trips where place_id = '30000000-0000-0000-0000-00000000000b';
+set role anon;
 
 -- ------------------------------------------------------------ as the admin
 reset role;
