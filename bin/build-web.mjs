@@ -36,7 +36,7 @@ const libFiles = (await fs.readdir(path.join(ROOT, 'lib')))
 const SHARED = [
   ['styles.css', 'styles.css'],
   ['manifest.webmanifest', 'manifest.webmanifest'],
-  ...['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png']
+  ...['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'og.png']
     .map((f) => [`icons/${f}`, `icons/${f}`]),
   ...libFiles
 ];

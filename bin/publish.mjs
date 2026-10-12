@@ -115,6 +115,7 @@ const SHARED = [
   ['icons/icon-192.png', 'icons/icon-192.png'],
   ['icons/icon-512.png', 'icons/icon-512.png'],
   ['icons/icon-maskable-512.png', 'icons/icon-maskable-512.png'],
+  ['icons/og.png', 'icons/og.png'],
   ['lib/state.js', 'lib/state.js'],
   ['lib/i18n.js', 'lib/i18n.js'],
   ['lib/money.js', 'lib/money.js'],
