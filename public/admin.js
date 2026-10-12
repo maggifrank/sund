@@ -36,11 +36,13 @@ async function answer(card, s, action, pool) {
   buttons.forEach((b) => { b.disabled = true; });
   try {
     const target = await cloud.rpc('resolve_suggestion', { p_id: s.id, p_action: action, p_pool: pool ?? null });
-    card.remove();
-    say(action === 'reject' ? `Left “${s.name}” private.`
+    const done = action === 'reject' ? `Left “${s.name}” private.`
       : action === 'add' ? `Added “${s.name}” as ${target}.`
-        : `Merged “${s.name}” into ${target}.`);
-    if (!list.children.length) list.append(empty());
+        : `Merged “${s.name}” into ${target}.`;
+    /* Read the queue again: a pool just added is what the next suggestion for
+       the same place should be merged into, and only a fresh read offers it. */
+    await load();
+    say(`${done} ${status.textContent}`.trim());
   } catch (err) {
     buttons.forEach((b) => { b.disabled = false; });
     say(err.code === '23505' ? `There is already a pool with the id ${pool}. Pick another.`
@@ -77,6 +79,13 @@ function card(s) {
     c.append(ul);
   }
 
+  if (s.alsoSuggested.length) {
+    c.append(node('p', { className: 'note admin-also' },
+      'Also suggested nearby or by a similar name: ',
+      s.alsoSuggested.map((o) => `${o.name} (${o.username ?? 'someone'})`).join(', '),
+      '. Add one of them, and the others will offer it to merge into.'));
+  }
+
   const id = node('input', { type: 'text', value: poolId(s.name), required: true, pattern: '[a-z0-9]+(-[a-z0-9]+)*', spellcheck: false });
   const add = node('form', { className: 'admin-row' },
     node('label', {}, 'New pool id', id),
@@ -97,17 +106,19 @@ function card(s) {
   return c;
 }
 
+async function load() {
+  const queue = await cloud.rpc('admin_suggestions');
+  list.replaceChildren(...(queue.length ? queue.map(card) : [empty()]));
+  say(queue.length ? `${queue.length} waiting, oldest first.` : '');
+}
+
 async function start() {
   if (!cloud.signedIn()) { location.replace('/login.html?next=/admin/'); return; }
   say('Loading…');
   try {
-    const [queue, pools] = await Promise.all([
-      cloud.rpc('admin_suggestions'),
-      cloud.rest('GET', 'pools?select=id,name&order=name', { anon: true })
-    ]);
+    const pools = await cloud.rest('GET', 'pools?select=id,name&order=name', { anon: true });
     allPools.replaceChildren(...pools.map((p) => node('option', { value: p.id, label: p.name })));
-    list.replaceChildren(...(queue.length ? queue.map(card) : [empty()]));
-    say(queue.length ? `${queue.length} waiting, oldest first.` : '');
+    await load();
   } catch (err) {
     if (err.locked) { location.replace('/login.html?next=/admin/'); return; }
     say(err.code === '42501' ? 'This page is for admins only.' : `Could not load the queue: ${err.message}`);

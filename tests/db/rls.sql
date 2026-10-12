@@ -187,6 +187,13 @@ select t.ok((select q -> 'swims' = '1' and q -> 'similar' @> '[{"id": "vesturbae
              from jsonb_array_elements(public.admin_suggestions()) q where q ->> 'name' = 'Vesturbæjarsundlaug'),
             'the queue shows the swims at a place and the pool it may duplicate');
 select t.ok(public.admin_suggestions()::text !~ '2026-09-2\d', 'the queue has no swim dates');
+reset role;
+insert into public.places (id, user_id, name, lat, lon)
+  values ('30000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000b', 'Havnebadet Odense', 55.4070, 10.3798);
+set role authenticated;
+select t.ok((select q -> 'alsoSuggested' @> '[{"name": "Havnebadet Odense", "username": "other"}]'
+             from jsonb_array_elements(public.admin_suggestions()) q where q ->> 'name' = 'Odense Havnebad'),
+            'the queue links two people''s suggestions for the same new place');
 select t.ok(public.resolve_suggestion((select id from public.pool_suggestions
                                         where place_id = '30000000-0000-0000-0000-00000000000b'), 'add') = 'odense-havnebad',
             'the admin adds a suggestion as a new shared pool');
@@ -197,7 +204,8 @@ select t.ok(public.resolve_suggestion((select id from public.pool_suggestions
             'the admin merges a suggestion into an existing pool');
 select t.ok((select 'Vesturbæjarsundlaug' = any (aliases) from public.pools where id = 'vesturbaejarlaug'),
             'the merged name becomes another name for the pool');
-select t.ok(jsonb_array_length(public.admin_suggestions()) = 0, 'answered suggestions leave the queue');
+select t.ok((select jsonb_agg(q ->> 'name') from jsonb_array_elements(public.admin_suggestions()) q) = '["Havnebadet Odense"]',
+            'answered suggestions leave the queue');
 select t.ok((select count(*) from public.trips) = 0, 'the admin still cannot read anyone''s swims');
 
 reset role;

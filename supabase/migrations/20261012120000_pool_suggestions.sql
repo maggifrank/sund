@@ -32,9 +32,11 @@ insert into public.pool_suggestions (user_id, place_id)
   on conflict (place_id) do nothing;
 
 -- The pending suggestions, oldest first, for the admin page: the place's name
--- and position, who named it and how many swims are logged there, and the
--- shared pools it may duplicate. Admins only; it reads across accounts, which
--- is why it is security definer, and it shows no swim's date or time.
+-- and position, who named it and how many swims are logged there, the shared
+-- pools it may duplicate, and other pending suggestions that look like the same
+-- place (two people who found the same new pool before it was on the list).
+-- Admins only; it reads across accounts, which is why it is security definer,
+-- and it shows no swim's date or time.
 create or replace function public.admin_suggestions()
 returns jsonb
 language plpgsql
@@ -56,7 +58,17 @@ begin
              'lon', pl.lon,
              'swims', (select count(*) from public.trips t where t.place_id = pl.id),
              'similar', coalesce((select jsonb_agg(to_jsonb(x))
-                                  from public.similar_pools(pl.name, pl.lat, pl.lon) x), '[]'::jsonb))
+                                  from public.similar_pools(pl.name, pl.lat, pl.lon) x), '[]'::jsonb),
+             'alsoSuggested', coalesce((
+               select jsonb_agg(jsonb_build_object('name', o.name, 'username', opr.username) order by os.created_at)
+               from public.pool_suggestions os
+               join public.places o on o.id = os.place_id
+               left join public.profiles opr on opr.user_id = os.user_id
+               where os.status = 'pending' and os.id <> s.id
+                 and ((pl.lat is not null and o.lat is not null
+                       and public.distance_m(pl.lat, pl.lon, o.lat, o.lon) < 250)
+                      or extensions.similarity(public.pool_key(o.name), public.pool_key(pl.name)) >= 0.4)
+             ), '[]'::jsonb))
            order by s.created_at)
     from public.pool_suggestions s
     join public.places pl on pl.id = s.place_id
