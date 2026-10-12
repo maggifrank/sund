@@ -97,8 +97,14 @@ function changes(a, b) {
   return out;
 }
 
-const strip = ({ fetched, ...rest }) => rest;
+const strip = ({ fetched, delisted, ...rest }) => rest;
 const added = [...after.values()].filter((p) => !before.has(p.id));
+/* A pool the directory stopped listing keeps its last details, marked
+   `delisted` (see bin/fetch-pool-info.mjs); it is reported the night that
+   happens. One that is gone from the file altogether was taken out of
+   lib/pools.js. */
+const delisted = [...after.values()].filter((p) => p.delisted && !before.get(p.id)?.delisted && before.has(p.id));
+const relisted = [...after.values()].filter((p) => !p.delisted && before.get(p.id)?.delisted);
 const dropped = [...before.values()].filter((p) => !after.has(p.id));
 const changed = [...after.values()]
   .filter((p) => before.has(p.id) && !same(strip(before.get(p.id)), strip(p)))
@@ -115,9 +121,17 @@ if (report.problems.length) {
 if (added.length) {
   md.push('### Details for pools that had none', '', ...added.map((p) => `- ${link(p)} (${p.region})`), '');
 }
-if (dropped.length) {
+if (delisted.length) {
   md.push('### No longer in the directory', '',
-    'Their details are dropped from `lib/poolinfo.js`. The pools stay in `lib/pools.js`, and their pages say the details are not in; take them out there too if they have closed.', '',
+    'sundlaugar.is no longer lists these. The details last read for them are kept in `lib/poolinfo.js`, and their pages say how old they are. If a pool has closed, take it out of `lib/pools.js`.', '',
+    ...delisted.map((p) => `- ${link(p)} (${p.region}), last read ${p.fetched}`), '');
+}
+if (relisted.length) {
+  md.push('### Back in the directory', '', ...relisted.map((p) => `- ${link(p)} (${p.region})`), '');
+}
+if (dropped.length) {
+  md.push('### Taken out', '',
+    'No longer in `lib/pools.js`, so their details are gone from `lib/poolinfo.js` too.', '',
     ...dropped.map((p) => `- ${link(p)} (${p.region})`), '');
 }
 if (changed.length) {
@@ -127,9 +141,9 @@ if (changed.length) {
   }
 }
 
-const unchanged = after.size - added.length - changed.length;
-const something = Boolean(report.problems.length || added.length || dropped.length || changed.length);
-md.push(`_${after.size} pools read: ${changed.length} changed, ${added.length} new, ${dropped.length} dropped, ${unchanged} unchanged._`);
+const unchanged = after.size - added.length - changed.length - delisted.length;
+const something = Boolean(report.problems.length || added.length || delisted.length || relisted.length || dropped.length || changed.length);
+md.push(`_${after.size} pools: ${changed.length} changed, ${added.length} new, ${delisted.length} no longer listed, ${unchanged} unchanged._`);
 
 /* A pull request's body stops at 65,536 characters. A night in which that many
    changed is one to read the file's own diff anyway. */

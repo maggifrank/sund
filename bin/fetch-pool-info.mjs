@@ -762,12 +762,18 @@ if (!WRITE) {
 /* ---------- write ---------- */
 
 /* Everything already in the file for regions this run did not ask about stays;
-   everything for the regions it did is replaced, so a pool the directory has
-   dropped is dropped here too. */
+   everything for the regions it did is replaced. A pool the directory has
+   stopped listing keeps the details last read for it, with the day it went
+   missing in `delisted`: sundlaugar.is took Vík's page down in October 2026
+   while the pool stayed open, and an old address and timetable, dated, is more
+   use than none. The pool page says how old they are and stops linking to the
+   directory. A pool taken out of lib/pools.js goes for good. */
 let kept = [];
 try {
+  const fetchedIds = new Set(fetched.map((p) => p.id));
   kept = (await import(pathToFileURL(OUT).href)).POOL_INFO
-    .filter((p) => !asked.some((r) => r.slug === p.region));
+    .filter((p) => !asked.some((r) => r.slug === p.region) || (!fetchedIds.has(p.id) && ids.has(p.id)))
+    .map((p) => (asked.some((r) => r.slug === p.region) ? { ...p, delisted: p.delisted ?? TODAY } : p));
 } catch { /* first run */ }
 
 const all = [...kept, ...fetched].sort((a, b) =>
