@@ -61,6 +61,15 @@ It is free and needs no key. OpenStreetMap rarely has prices, and its hours are
 only as current as its last edit, so check the pool's page afterwards. The page
 credits OpenStreetMap (ODbL), as its licence requires.
 
+## Pools sundlaugar.is stops listing
+
+The nightly crawl keeps a pool's last details when sundlaugar.is stops listing
+it, marked `delisted` in `lib/poolinfo.js` (sundlaugar.is dropped Vík while it
+was still open). `/admin/` lists those pools and asks whether each has closed.
+The answer goes in `pools.status` through `set_pool_status()`. A closed pool is
+left off the front page, and its page says it has closed. Swims logged there
+stay. Needs migration `20261012170000_pool_status.sql`.
+
 ## Testing it
 
     bin/test-db.sh

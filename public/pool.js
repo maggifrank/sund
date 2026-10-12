@@ -4,7 +4,7 @@
    often a pool has been swum in and never on which day. The renderer is the
    private page's, so the two cannot disagree about a pool. */
 
-import { loadSnapshot, loadAddedPools } from './lib/snapshot.js';
+import { loadSnapshot, loadAddedPools, loadClosedPools } from './lib/snapshot.js';
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { allPools } from './lib/pools.js';
 import { poolRowsFromTotals, totalsIdentifyPools } from './lib/poolmap.js';
@@ -16,6 +16,7 @@ const id = new URLSearchParams(location.search).get('id') ?? '';
 
 let poolTable = null;
 let added = [];
+let closed = new Set();
 let lang = detectLang();
 
 const el = (name) => document.getElementById(name);
@@ -56,7 +57,7 @@ function render() {
   const name = pool?.name ?? infoFor(id)?.name ?? t(lang, 'pool.label');
   applyStaticStrings(name);
   ui.name.textContent = name;
-  renderPoolPage(ui.pool, lang, { id, pool, visits, rows });
+  renderPoolPage(ui.pool, lang, { id, pool, visits, rows, closed: closed.has(id) });
 }
 
 for (const code of LANGS) {
@@ -87,10 +88,12 @@ render();
    to read — see homePool() in bin/publish.mjs. Either copy may be showing a
    pool added to the shared list after lib/pools.js, which only the database
    can place. */
-const [state, extra] = await Promise.all([
+const [state, extra, shut] = await Promise.all([
   document.body.hasAttribute('data-no-snapshot') ? null : loadSnapshot().catch(() => null),
-  loadAddedPools()
+  loadAddedPools(),
+  loadClosedPools()
 ]);
+closed = shut;
 poolTable = Array.isArray(state?.poolTable) ? state.poolTable : null;
 added = extra.map(({ info, ...pool }) => pool);
 addInfo(extra.map((p) => p.info).filter(Boolean));

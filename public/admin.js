@@ -8,15 +8,21 @@
    Add and merge move every swim logged at the place to the pool. A pool that
    ends up with no details (address, hours, contacts) is looked up on
    OpenStreetMap (lib/osmlookup.js), and what it finds is saved with
-   set_pool_info(). */
+   set_pool_info().
+
+   Below that, the pools sundlaugar.is has stopped listing (`delisted` in
+   lib/poolinfo.js): still open, or closed? The answer is saved with
+   set_pool_status(). */
 
 import * as cloud from '../lib/cloud.js';
 import { lookUpOsm } from '../lib/osmlookup.js';
+import { POOL_INFO } from '../lib/poolinfo.js';
 
 const list = document.getElementById('admin-list');
 const status = document.getElementById('admin-status');
 const allPools = document.getElementById('all-pools');
 const detailsList = document.getElementById('admin-details');
+const listingList = document.getElementById('admin-listing');
 
 const say = (text) => { status.textContent = text; };
 
@@ -167,6 +173,51 @@ async function lookUp(id) {
   drawDetails();
 }
 
+/* ---------- pools the directory dropped ---------- */
+
+/* Asked about until an admin answers on or after the day the crawl found the
+   pool missing; a pool that drops off again later is asked about again. */
+async function loadListing() {
+  const delisted = POOL_INFO.filter((p) => p.delisted);
+  if (!delisted.length) {
+    listingList.replaceChildren(node('li', {}, node('span', { className: 'note', textContent: 'Every pool is listed.' })));
+    return;
+  }
+  const ids = delisted.map((p) => `"${p.id}"`).join(',');
+  const rows = await cloud.rest('GET', `pools?select=id,status,checked_on&id=in.(${encodeURIComponent(ids)})`, { anon: true });
+  const answered = new Map(rows.map((r) => [r.id, r]));
+  const items = delisted.map((p) => {
+    const row = answered.get(p.id);
+    const said = row?.checked_on && row.checked_on >= p.delisted
+      ? (row.status === 'closed' ? ' · marked closed' : ' · still open')
+      : '';
+    const text = node('span', {},
+      node('a', { href: `/pool.html?id=${p.id}`, textContent: p.name }),
+      ` · gone from the directory ${day(p.delisted)}, last read ${day(p.fetched)}${said}`);
+    if (said) return node('li', {}, text);
+    const open = node('button', { type: 'button', className: 'ghost-btn', textContent: 'Still open' });
+    const shut = node('button', { type: 'button', className: 'danger-btn', textContent: 'Closed' });
+    open.addEventListener('click', () => setStatus(p, 'open', [open, shut]));
+    shut.addEventListener('click', () => {
+      if (confirm(`Mark ${p.name} closed? It leaves the front page, and its page says it has closed.`)) setStatus(p, 'closed', [open, shut]);
+    });
+    return node('li', {}, text, node('span', { className: 'admin-pair' }, open, shut));
+  });
+  listingList.replaceChildren(...items);
+}
+
+async function setStatus(pool, value, buttons) {
+  buttons.forEach((b) => { b.disabled = true; });
+  try {
+    await cloud.rpc('set_pool_status', { p_pool: pool.id, p_status: value });
+    say(value === 'closed' ? `Marked ${pool.name} closed.` : `${pool.name} stays, as open.`);
+    await loadListing();
+  } catch (err) {
+    buttons.forEach((b) => { b.disabled = false; });
+    say(`That did not work: ${err.message}`);
+  }
+}
+
 /* ---------- start ---------- */
 
 async function load() {
@@ -183,6 +234,9 @@ async function start() {
     allPools.replaceChildren(...pools.map((p) => node('option', { value: p.id, label: p.name })));
     await load();
     await loadDetails();
+    await loadListing().catch((err) => {
+      listingList.replaceChildren(node('li', {}, node('span', { className: 'note', textContent: `Could not check: ${err.message}. Has the pool status migration run?` })));
+    });
   } catch (err) {
     if (err.locked) { location.replace('/login.html?next=/admin/'); return; }
     say(err.code === '42501' ? 'This page is for admins only.' : `Could not load the queue: ${err.message}`);
