@@ -152,6 +152,32 @@ for (const [sub, list] of Object.entries(SITES)) {
 }
 await fs.writeFile(path.join(OUT, '_redirects'), REDIRECTS);
 
+/* Every module a page will import, named up front in its <head>. Without this
+   the browser finds them one level at a time (the page's script, then what it
+   imports, then what those import), a round trip per level before anything is
+   drawn; with it they are all fetched at once. */
+async function moduleGraph(entry, seen = new Set()) {
+  if (seen.has(entry)) return seen;
+  seen.add(entry);
+  const src = await fs.readFile(entry, 'utf8');
+  for (const m of src.matchAll(/^\s*(?:import|export)\b[^'"]*?from\s*['"](\.[^'"]+)['"]/gm)) {
+    await moduleGraph(path.resolve(path.dirname(entry), m[1]), seen);
+  }
+  return seen;
+}
+
+for (const e of await fs.readdir(OUT, { withFileTypes: true, recursive: true })) {
+  if (!e.isFile() || !/\.html?$/.test(e.name)) continue;
+  const file = path.join(e.parentPath ?? e.path, e.name);
+  const html = await fs.readFile(file, 'utf8');
+  const script = html.match(/<script type="module" src="([^"]+)"/);
+  if (!script) continue;
+  const entry = path.resolve(path.dirname(file), script[1]);
+  const deps = [...await moduleGraph(entry)].filter((f) => f !== entry);
+  const links = deps.map((f) => `<link rel="modulepreload" href="${path.relative(path.dirname(file), f).split(path.sep).join('/')}">`);
+  if (links.length) await fs.writeFile(file, html.replace('</head>', `${links.join('\n')}\n</head>`));
+}
+
 const missing = await missingImports(OUT);
 if (missing.length) {
   console.error(`build-web: missing modules:\n  ${missing.join('\n  ')}`);
