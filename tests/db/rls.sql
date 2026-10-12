@@ -176,7 +176,9 @@ select t.ok((select sum((r ->> 'count')::int) from jsonb_array_elements(public.p
 select t.ok(public.public_profile('magnus') -> 'byMonth' = '{"2026-09": 5}', 'the public page counts swims per month');
 select t.ok(jsonb_array_length(public.public_profile('magnus') -> 'byWeekday') = 7, 'the public page counts swims per weekday');
 select t.ok(public.public_profile('magnus')::text !~ '2026-09-\d\d[T ]\d', 'the public page has no swim dates or times');
-select t.ok(public.public_profile('magnus')::text !~ '64\.14|21\.96', 'the public page has no private place positions');
+-- The place's whole coordinates: '21\.96' alone also matched a timestamp
+-- that happened to land on second 21.96, which failed CI once.
+select t.ok(public.public_profile('magnus')::text !~ '64\.1466|-21\.9658', 'the public page has no private place positions');
 reset role;
 insert into public.trips (user_id, at, place_id, client_id)
   values ('00000000-0000-0000-0000-00000000000a', '2026-09-25 12:00+00', '30000000-0000-0000-0000-00000000000b', gen_random_uuid());
