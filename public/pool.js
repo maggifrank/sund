@@ -8,7 +8,7 @@ import { loadSnapshot, loadAddedPools } from './lib/snapshot.js';
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { allPools } from './lib/pools.js';
 import { poolRowsFromTotals, totalsIdentifyPools } from './lib/poolmap.js';
-import { renderPoolPage, infoFor } from './lib/poolpage.js';
+import { renderPoolPage, infoFor, addInfo } from './lib/poolpage.js';
 
 const LANG_KEY = 'sund.lang';
 
@@ -92,5 +92,6 @@ const [state, extra] = await Promise.all([
   loadAddedPools()
 ]);
 poolTable = Array.isArray(state?.poolTable) ? state.poolTable : null;
-added = extra;
+added = extra.map(({ info, ...pool }) => pool);
+addInfo(extra.map((p) => p.info).filter(Boolean));
 render();
