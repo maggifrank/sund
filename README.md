@@ -278,10 +278,9 @@ switched off, simply have no pool — the count is unaffected.
 
 **The public site gets the table, but only as totals.** `bin/publish.mjs`
 publishes the finished rows — an id, a name, a count and whether the card covers
-it — and still drops the pool from every trip, publishes an empty pool list, and
-drops the time, the same way it always did. So the page can say where the
-swimming happens without saying *when* any of it happened: there is no pool
-attached to a date anywhere in `state.json`, and the saved pool list — the one
+it — publishes no trips at all, and publishes an empty pool list. So the page
+can say where the swimming happens without saying *when* any of it happened:
+there is no swim and no date in `state.json`, and the saved pool list — the one
 holding a position for anywhere named on the spot — goes out empty.
 
 The id is what lets [the map](#on-the-public-site) put a row on the country. It
@@ -303,13 +302,9 @@ did not cover, split by which of the two rules left them out, but as **plain
 counts** — no dates. An older snapshot without those counts simply hides the
 line.
 
-The public snapshot contains **every trip**, plus plain counts saying how many of
-them the card covers. It used to contain the card's own and nothing else, which
-quietly cut its monthly chart short the day the card grew dates; the money there
-now reads the published count rather than the length of the list. The pool on
-each trip is still stripped, so a for-fun swim is published as a date like any
-other, and the table above stays the only thing that says where the swimming
-happened.
+The public snapshot contains **no trips at all**, only counts: the totals, the
+pool table, and swims per month and per weekday. See
+[The public read-only site](#the-public-read-only-site).
 
 ## The map
 
@@ -941,31 +936,14 @@ It is read-only **by construction, not by hiding buttons**: the deploy is static
 files plus a `state.json` snapshot, with no API and no function behind it. There
 is nothing to authenticate because there is nothing to write to.
 
-The page shows **every swim, and counts only the card's**. The big number, the
-cost per trip and the break-even are the card's swims — `totals.counted`, worked
-out at publish time, because the snapshot's own list is no longer the answer —
-while the chart, the weekday pie and the history draw the whole history. That is
-the same rule the app states for an off-card swim: it shows in the chart, the
-history and the pool table, but never in the money. The history marks the ones
-the card does not cover with the same pill the app uses, so the list and the
-counter above it always reconcile.
-
-It did not used to. The snapshot published `cardTrips()` alone, which nothing
-noticed until the card grew dates: from that day the public chart began at the
-season start and every month before it vanished, while the app beside it still
-drew the lot. Publishing the dates of off-card swims is the same disclosure the
-card's own swims already make — the count was public in `totals.all` and in a
-pool table counted over everything, so how much swimming there was outside the
-card was never the secret, only when.
-
-The history shows **dates without times**. The times are stripped from the
-snapshot itself, not merely hidden in the page — otherwise they would still sit
-in `state.json` for anyone who opened it directly. Every published trip is
-anchored at local midday, which preserves the date and the count (two swims on
-one day stay two rows) while dropping the hour. Nothing on the public page needs
-the time: the count, cost per trip, break-even and the monthly chart all work
-off dates alone. The private app is unaffected and still records and shows exact
-times.
+The page shows **sums, not swims**. The big number, the cost per trip and the
+break-even are the card's swims, worked out at publish time as `totals.counted`.
+The monthly chart and the weekday pie are drawn from two more sums,
+`byMonth` and `byWeekday`, counted over the whole history. No swim is
+published on its own: `state.json` carries no trip list, no dates, no times and
+no last-swim date, so the page has no history list and nothing in the file can
+put a swim on a day. The private app is unaffected and still records and shows
+exact times.
 
 The **pool table** is stripped the same way, in the other direction: the counts
 are published, the trips they were counted from are not. A row says the pool and

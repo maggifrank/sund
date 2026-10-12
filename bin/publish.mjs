@@ -50,38 +50,24 @@ async function get(pathname) {
   return res.json();
 }
 
-/* Publish the date a swim happened — not the hour, and not the pool.
- *
- * The exact times are a fairly detailed picture of someone's week, and pinning
- * a pool to a date says which neighbourhood they were in on which day. Neither
- * is needed by anything on the public page: the count, cost per trip,
- * break-even and the monthly chart all work off dates alone, and the pool table
- * is published as totals (see poolTable()) rather than per trip. Both are
- * dropped from the snapshot rather than hidden in the page, or they would still
- * sit in state.json for anyone who opened it directly.
- *
- * Anchoring at local midday keeps the date and the count while dropping the
- * time, and matches the convention backdated trips already use.
- *
- * Every swim, not just the ones on the card. This used to publish cardTrips()
- * alone, which was invisible until the card grew dates: from then on the public
- * chart began at the season start and the months before it simply vanished,
- * while the app beside it still drew the lot. The page is meant to be the same
- * picture with the controls taken away, and "it shows in the chart, the history
- * and the pool table, but never in the money" is the rule the app states for an
- * off-card swim — so the money here reads `totals.counted` and the drawings get
- * the whole history.
- *
- * That publishes the dates of swims the card does not cover. It is the same
- * disclosure the card's own swims already make, and the page already publishes
- * `totals.all` and a pool table counted over everything, so how much swimming
- * there was outside the card was never the secret — only when. The hour and the
- * pool, which are what actually locate someone, stay dropped. */
-function publicTrips(state) {
-  return normalize(state).trips.map((trip) => {
+/* Sums, not swims. The public page is a user's totals: no date, hour or pool
+ * of any one swim is published, because a list of dates is a fairly detailed
+ * picture of someone's week, and with a home pool it says where they reliably
+ * are. The two charts need only how many swims fell in each month and on each
+ * weekday, so that is all that goes out, counted over the whole history. The
+ * counts are taken here rather than in the page, and the trips themselves are
+ * left out of state.json, so nothing hidden in the page is still sitting in the
+ * file for anyone who opens it directly. */
+function sums(state) {
+  const byMonth = {};
+  const byWeekday = new Array(7).fill(0);
+  for (const trip of normalize(state).trips) {
     const d = new Date(typeof trip === 'string' ? trip : trip.at);
-    return { at: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0).toISOString() };
-  }).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    byMonth[key] = (byMonth[key] ?? 0) + 1;
+    byWeekday[d.getDay()]++;
+  }
+  return { byMonth, byWeekday };
 }
 
 /* The pool table, totalled here rather than on the page. It feeds the public
@@ -264,7 +250,7 @@ async function build(state, rates) {
   const settings = { ...full.settings, cardPools: null };
 
   await fs.writeFile(path.join(userDir, 'state.json'), JSON.stringify({
-    ...state, trips: publicTrips(state), pools: [], settings, totals,
+    ...state, trips: [], ...sums(state), pools: [], settings, totals,
     poolTable: poolTable(state), generatedAt: new Date().toISOString()
   }, null, 2));
   await fs.writeFile(path.join(userDir, 'rates.json'), JSON.stringify(rates, null, 2));
