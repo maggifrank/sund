@@ -65,7 +65,7 @@ function card(s) {
   const c = node('section', { className: 'card admin-card' });
   const where = Number.isFinite(s.lat) && Number.isFinite(s.lon)
     ? node('a', {
-      href: `https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=16/${s.lat}/${s.lon}`,
+      href: `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lon}`,
       target: '_blank', rel: 'noopener', textContent: 'On the map'
     })
     : 'No position';
