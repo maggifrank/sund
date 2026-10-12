@@ -149,6 +149,32 @@
         <label><span data-i18n="settings.cardTrips"></span>
           <input id="in-card-trips" type="number" min="1" step="1" inputmode="numeric">
         </label>
+        <!-- Sund 2.0 only: lib/account.js shows it when the app is signed in to
+             Supabase. On serve.js there is no account to show. -->
+        <section id="account" class="settings-account" hidden>
+          <h3 class="label" data-i18n="account.label"></h3>
+          <p id="account-email" class="note"></p>
+          <form id="account-username" class="row">
+            <label><span data-i18n="account.username"></span>
+              <input id="in-username" type="text" required minlength="3" maxlength="30"
+                     pattern="[a-z0-9]+(-[a-z0-9]+)*" autocapitalize="none" spellcheck="false">
+            </label>
+            <button type="submit" class="ghost-btn" data-i18n="account.save"></button>
+          </form>
+          <label class="check-row"><input id="in-public" type="checkbox">
+            <span data-i18n="account.public"></span>
+          </label>
+          <p class="note"><a id="account-page" target="_blank" rel="noopener"></a></p>
+          <label id="account-import" class="ghost-btn file-btn"><span data-i18n="account.import"></span>
+            <input id="in-import" type="file" accept="application/json,.json" hidden>
+          </label>
+          <p id="account-status" class="note" role="status" hidden></p>
+          <div class="settings-actions">
+            <button id="sign-out" class="ghost-btn" type="button" data-i18n="account.signOut"></button>
+            <button id="delete-account" class="danger-btn" type="button" data-i18n="account.delete"></button>
+          </div>
+        </section>
+
         <div class="settings-actions">
           <button id="export" class="ghost-btn" type="button" data-i18n="settings.export"></button>
           <button id="reset" class="danger-btn" type="button" data-i18n="settings.reset"></button>

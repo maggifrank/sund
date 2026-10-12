@@ -14,8 +14,8 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<!-- A placeholder until accounts exist: the buttons are where Google and
-     Microsoft sign-in will go, and say plainly that they are not there yet. -->
+<!-- Sign-in and sign-up are one step: Supabase makes the account the first
+     time someone comes back from Google or Microsoft. -->
 <main class="app app--login">
 
   <header class="head">
@@ -28,14 +28,13 @@
 
   <section class="card login-card">
     <p class="home-lead" data-i18n="login.lead"></p>
-    <button type="button" class="login-provider" disabled>
+    <button type="button" class="login-provider" data-provider="google">
       <span data-i18n="login.google"></span>
-      <span class="pool-tag" data-i18n="login.soon"></span>
     </button>
-    <button type="button" class="login-provider" disabled>
+    <button type="button" class="login-provider" data-provider="azure">
       <span data-i18n="login.microsoft"></span>
-      <span class="pool-tag" data-i18n="login.soon"></span>
     </button>
+    <p id="login-status" class="note" role="status" hidden></p>
     <p id="contact" class="note"></p>
   </section>
 

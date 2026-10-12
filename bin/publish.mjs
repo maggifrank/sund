@@ -102,7 +102,7 @@ function poolTable(state) {
    person's, and live under /<username>/ — the address every user's page will
    have once there are accounts.
 
-   Only the files the read-only pages need. lib/api.js, lib/rates.js, serve.js
+   Only the files the read-only pages need. lib/api.js, serve.js
    and netlify/ are server-side and are deliberately absent, and so is
    lib/celebrate.js: there is nothing to celebrate on a page with no + button. */
 const USER = process.env.SUND_PUBLIC_USER || 'maggifrank';
@@ -128,7 +128,12 @@ const SHARED = [
   ['lib/busychart.js', 'lib/busychart.js'],
   ['lib/poolbusy.js', 'lib/poolbusy.js'],
   ['lib/iceland.js', 'lib/iceland.js'],
-  ['lib/coastline.js', 'lib/coastline.js']
+  ['lib/coastline.js', 'lib/coastline.js'],
+  /* Sund 2.0's Supabase client. These pages only use it on the 2.0 site;
+     here they read state.json as before (see lib/snapshot.js). */
+  ['lib/snapshot.js', 'lib/snapshot.js'],
+  ['lib/cloud.js', 'lib/cloud.js'],
+  ['lib/rates.js', 'lib/rates.js']
 ];
 
 const HOME = [

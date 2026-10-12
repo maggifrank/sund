@@ -872,6 +872,16 @@ touch a few times a week, polling is less to go wrong.
 both backends *and* by the browser, so the two deployments can't drift apart and
 the break-even maths exists in exactly one place.
 
+## Sund 2.0
+
+The same app for anyone: sign in with Google or Microsoft, keep your own count,
+and show a sums-only page at `sund.talva.is/<username>` if you want to. The
+pages are the ones described here; with
+`<meta name="sund-backend" content="supabase">` they talk to Supabase
+(`lib/cloud.js`) instead of serve.js. Building and going live:
+[web/README.md](web/README.md). The database and its privacy rules:
+[supabase/README.md](supabase/README.md).
+
 ## Running it locally
 
 ```bash

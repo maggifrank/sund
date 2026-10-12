@@ -3,6 +3,8 @@
    hiding buttons. All the arithmetic, wording and the chart come from the same
    lib/ modules the private app uses, so the two cannot disagree. */
 
+import { loadSnapshot, loadRates } from './lib/snapshot.js';
+import { isCloud } from './lib/cloud.js';
 import {
   normalize, costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, dateFromKey
 } from './lib/state.js';
@@ -237,17 +239,11 @@ bindChartTooltip(ui.chart);
 bindChartHighlight(ui.chart);
 bindChartHighlight(ui.weekday);
 
-const loadJSON = async (path) => {
-  try {
-    const res = await fetch(path, { cache: 'no-cache' });
-    return res.ok ? await res.json() : null;
-  } catch {
-    return null;
-  }
-};
-
-const [state, rateData] = await Promise.all([loadJSON('./state.json'), loadJSON('./rates.json')]);
+const [state, rateData] = await Promise.all([loadSnapshot(), loadRates()]);
 rates = rateData;
+/* On Sund 2.0 any address can be a username, so one that is not, or whose
+   page is switched off, says so instead of drawing an empty counter. */
+if (!state && isCloud()) showMissing();
 if (state) {
   const clean = normalize(state);
   snapshot = {
@@ -258,3 +254,21 @@ if (state) {
   };
 }
 render();
+
+function showMissing() {
+  const card = document.createElement('section');
+  card.className = 'card missing';
+  const title = document.createElement('h2');
+  title.textContent = t(lang, 'public.missingTitle');
+  const text = document.createElement('p');
+  text.className = 'home-lead';
+  text.textContent = t(lang, 'public.missing');
+  const home = document.createElement('a');
+  home.className = 'login-btn';
+  home.href = '/';
+  home.textContent = t(lang, 'public.home');
+  card.append(title, text, home);
+  const main = document.querySelector('main');
+  main.replaceChildren(...[main.querySelector('header'), card].filter(Boolean));
+  document.title = `Sund · ${t(lang, 'public.missingTitle')}`;
+}

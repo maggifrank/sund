@@ -11,6 +11,7 @@ import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
 import { mapHTML, bindMapTooltip, bindMapZoom } from './lib/poolmap.js';
 import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { BUILT_IN, poolHref } from './lib/pools.js';
+import { isCloud, signedIn } from './lib/cloud.js';
 
 const LANG_KEY = 'sund.lang';
 
@@ -35,6 +36,12 @@ function applyStaticStrings() {
   }
   for (const node of document.querySelectorAll('[data-i18n-title]')) {
     node.setAttribute('title', t(lang, node.dataset.i18nTitle));
+  }
+  /* Someone already signed in goes straight to their count. */
+  const login = document.querySelector('.login-btn');
+  if (login && isCloud() && signedIn()) {
+    login.href = '/app/';
+    login.textContent = t(lang, 'home.open');
   }
 }
 

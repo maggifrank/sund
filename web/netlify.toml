@@ -1,0 +1,19 @@
+# Sund 2.0 on Netlify. Set the site's base directory to "web" so this file is
+# the one Netlify reads (Site configuration → Build & deploy → Build settings).
+#
+# Static files only: the browser talks to Supabase itself (lib/cloud.js). There
+# is deliberately no [functions] block and no functions directory under web/:
+# the one-person app's read/write API in netlify/functions must never be
+# deployed to a public site. No environment variables are needed either; the
+# Supabase address and publishable key are public by design and live in
+# lib/cloud.js. The secret service_role key never goes here.
+[build]
+  command = "cd .. && node bin/build-web.mjs web/dist"
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
