@@ -22,7 +22,13 @@ const status = document.getElementById('login-status');
    after they sign in. */
 function nextPath() {
   const next = new URLSearchParams(location.search).get('next') || '/app/';
-  return next.startsWith('/') && !next.startsWith('//') ? next : '/app/';
+  /* Resolved as the browser would: /\evil.com passes a "starts with one
+     slash" test but is //evil.com to the browser. */
+  try {
+    const url = new URL(next, location.origin);
+    if (url.origin === location.origin) return url.pathname + url.search + url.hash;
+  } catch { /* not an address */ }
+  return '/app/';
 }
 
 function render() {
