@@ -51,38 +51,24 @@ async function get(pathname) {
   return res.json();
 }
 
-/* Publish the date a swim happened — not the hour, and not the pool.
- *
- * The exact times are a fairly detailed picture of someone's week, and pinning
- * a pool to a date says which neighbourhood they were in on which day. Neither
- * is needed by anything on the public page: the count, cost per trip,
- * break-even and the monthly chart all work off dates alone, and the pool table
- * is published as totals (see poolTable()) rather than per trip. Both are
- * dropped from the snapshot rather than hidden in the page, or they would still
- * sit in state.json for anyone who opened it directly.
- *
- * Anchoring at local midday keeps the date and the count while dropping the
- * time, and matches the convention backdated trips already use.
- *
- * Every swim, not just the ones on the card. This used to publish cardTrips()
- * alone, which was invisible until the card grew dates: from then on the public
- * chart began at the season start and the months before it simply vanished,
- * while the app beside it still drew the lot. The page is meant to be the same
- * picture with the controls taken away, and "it shows in the chart, the history
- * and the pool table, but never in the money" is the rule the app states for an
- * off-card swim — so the money here reads `totals.counted` and the drawings get
- * the whole history.
- *
- * That publishes the dates of swims the card does not cover. It is the same
- * disclosure the card's own swims already make, and the page already publishes
- * `totals.all` and a pool table counted over everything, so how much swimming
- * there was outside the card was never the secret — only when. The hour and the
- * pool, which are what actually locate someone, stay dropped. */
-function publicTrips(state) {
-  return normalize(state).trips.map((trip) => {
+/* Sums, not swims. The public page is a user's totals: no date, hour or pool
+ * of any one swim is published, because a list of dates is a fairly detailed
+ * picture of someone's week, and with a home pool it says where they reliably
+ * are. The two charts need only how many swims fell in each month and on each
+ * weekday, so that is all that goes out, counted over the whole history. The
+ * counts are taken here rather than in the page, and the trips themselves are
+ * left out of state.json, so nothing hidden in the page is still sitting in the
+ * file for anyone who opens it directly. */
+function sums(state) {
+  const byMonth = {};
+  const byWeekday = new Array(7).fill(0);
+  for (const trip of normalize(state).trips) {
     const d = new Date(typeof trip === 'string' ? trip : trip.at);
-    return { at: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0).toISOString() };
-  }).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    byMonth[key] = (byMonth[key] ?? 0) + 1;
+    byWeekday[d.getDay()]++;
+  }
+  return { byMonth, byWeekday };
 }
 
 /* The pool table, totalled here rather than on the page. It feeds the public
@@ -121,10 +107,18 @@ function poolTable(state) {
     (abroad.has(id) ? { id, name, count, card, abroad: true } : { id, name, count, card }));
 }
 
-/* Only the files the read-only pages need. lib/api.js, lib/rates.js, serve.js
+/* The site has two parts. The front page is the pools: a map and a list of
+   every one, a page for each, and the way to sign in. It reads no snapshot and
+   carries nobody's swimming. The counter, its map and its pool pages are one
+   person's, and live under /<username>/ — the address every user's page will
+   have once there are accounts.
+
+   Only the files the read-only pages need. lib/api.js, serve.js
    and netlify/ are server-side and are deliberately absent, and so is
    lib/celebrate.js: there is nothing to celebrate on a page with no + button. */
-const COPY = [
+const USER = process.env.SUND_PUBLIC_USER || 'maggifrank';
+
+const SHARED = [
   ['styles.css', 'styles.css'],
   ['manifest.webmanifest', 'manifest.webmanifest'],
   ['icons/favicon.svg', 'icons/favicon.svg'],
@@ -132,12 +126,7 @@ const COPY = [
   ['icons/icon-192.png', 'icons/icon-192.png'],
   ['icons/icon-512.png', 'icons/icon-512.png'],
   ['icons/icon-maskable-512.png', 'icons/icon-maskable-512.png'],
-  ['public/index.html', 'index.html'],
-  ['public/app.js', 'app.js'],
-  ['public/map.html', 'map.html'],
-  ['public/map.js', 'map.js'],
-  ['public/pool.html', 'pool.html'],
-  ['public/pool.js', 'pool.js'],
+  ['icons/og.png', 'icons/og.png'],
   ['lib/state.js', 'lib/state.js'],
   ['lib/i18n.js', 'lib/i18n.js'],
   ['lib/money.js', 'lib/money.js'],
@@ -151,8 +140,65 @@ const COPY = [
   ['lib/busychart.js', 'lib/busychart.js'],
   ['lib/poolbusy.js', 'lib/poolbusy.js'],
   ['lib/iceland.js', 'lib/iceland.js'],
-  ['lib/coastline.js', 'lib/coastline.js']
+  ['lib/coastline.js', 'lib/coastline.js'],
+  /* Sund 2.0's Supabase client. These pages only use it on the 2.0 site;
+     here they read state.json as before (see lib/snapshot.js). */
+  ['lib/snapshot.js', 'lib/snapshot.js'],
+  ['lib/cloud.js', 'lib/cloud.js'],
+  ['lib/rates.js', 'lib/rates.js']
 ];
+
+const HOME = [
+  ...SHARED,
+  ['public/home.html', 'index.html'],
+  ['public/home.js', 'home.js'],
+  ['public/login.html', 'login.html'],
+  ['public/login.js', 'login.js'],
+  ['public/pool.html', 'pool.html'],
+  ['public/pool.js', 'pool.js']
+];
+
+/* A whole copy of the shared files rather than paths up to the root's, so the
+   user's pages keep the relative paths they have always used. Netlify stores a
+   file once by its hash, so the copy costs nothing to upload. */
+const USER_PAGES = [
+  ...SHARED,
+  ['public/index.html', 'index.html'],
+  ['public/app.js', 'app.js'],
+  ['public/map.html', 'map.html'],
+  ['public/map.js', 'map.js'],
+  ['public/pool.html', 'pool.html'],
+  ['public/pool.js', 'pool.js']
+];
+
+/* Old addresses of the one-person site. The counter is the user's page now;
+   the map and the pool pages are the front page's. */
+const REDIRECTS = `/map.html  /  301
+`;
+
+/* Every page under /<username>/ gets a base of /<username>/. Netlify serves
+   /maggifrank and /maggifrank/ alike, and without the slash every relative
+   path on the page — its scripts, its snapshot — would resolve against the root. */
+const withBase = (html) => html.replace('<head>', `<head>\n<base href="/${USER}/">`);
+
+/* The front page's copy of a pool page goes back to the front page, which is
+   where its map is, and is not a "read-only view" of anything. */
+const homePool = (html) => html
+  .replace('<body>', '<body data-no-snapshot>')
+  .replace('href="map.html"', 'href="./"')
+  .replace(/\n *<p class="rate-note" data-i18n="public.readonly"><\/p>\n/, '\n');
+
+async function copyAll(list, dir, transform = (_, s) => s) {
+  for (const [from, to] of list) {
+    const dest = path.join(dir, to);
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    if (to.endsWith('.html')) {
+      await fs.writeFile(dest, transform(to, await fs.readFile(path.join(ROOT, from), 'utf8')));
+    } else {
+      await fs.copyFile(path.join(ROOT, from), dest);
+    }
+  }
+}
 
 /* The list above is maintained by hand, and a module that grows a new import is
    invisible to it: the file simply 404s, the module graph fails and the page
@@ -198,9 +244,10 @@ const NETLIFY_TOML = `# Generated by bin/publish.mjs — a static, read-only bui
 
 async function build(state, rates) {
   await fs.rm(DIST, { recursive: true, force: true });
-  await fs.mkdir(path.join(DIST, 'lib'), { recursive: true });
-  await fs.mkdir(path.join(DIST, 'icons'), { recursive: true });
-  for (const [from, to] of COPY) await fs.copyFile(path.join(ROOT, from), path.join(DIST, to));
+  const userDir = path.join(DIST, USER);
+  await copyAll(HOME, DIST, (to, html) => (to === 'pool.html' ? homePool(html) : html));
+  await copyAll(USER_PAGES, userDir, (_, html) => withBase(html));
+  await fs.writeFile(path.join(DIST, '_redirects'), REDIRECTS);
   /* Plain counts, so the page can say how much of the swimming the card
      actually covers — split by which of the two rules left each trip out. */
   const full = normalize(state);
@@ -219,11 +266,11 @@ async function build(state, rates) {
      counts and its table are both totalled here. */
   const settings = { ...full.settings, cardPools: null };
 
-  await fs.writeFile(path.join(DIST, 'state.json'), JSON.stringify({
-    ...state, trips: publicTrips(state), pools: [], settings, totals,
+  await fs.writeFile(path.join(userDir, 'state.json'), JSON.stringify({
+    ...state, trips: [], ...sums(state), pools: [], settings, totals,
     poolTable: poolTable(state), generatedAt: new Date().toISOString()
   }, null, 2));
-  await fs.writeFile(path.join(DIST, 'rates.json'), JSON.stringify(rates, null, 2));
+  await fs.writeFile(path.join(userDir, 'rates.json'), JSON.stringify(rates, null, 2));
   await fs.writeFile(path.join(DIST, 'netlify.toml'), NETLIFY_TOML);
 }
 
@@ -337,7 +384,7 @@ async function fingerprint(dir) {
   const h = crypto.createHash('sha1');
   for (const f of files) {
     h.update(f.rel);
-    if (f.rel === '/state.json') {
+    if (f.rel === `/${USER}/state.json`) {
       const { generatedAt, ...rest } = JSON.parse(f.buf.toString());
       h.update(JSON.stringify(rest));
     } else {

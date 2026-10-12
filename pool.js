@@ -7,6 +7,7 @@
    public copy of it is handed totals and cannot. */
 
 import { emptyState, normalize, applyQueue, poolIsOnCard, tripAt } from './lib/state.js';
+import * as cloud from './lib/cloud.js';
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { allPools } from './lib/pools.js';
 import { poolRows } from './lib/poolmap.js';
@@ -57,7 +58,7 @@ async function api(method, path) {
 async function poll({ force = false } = {}) {
   if (document.hidden && !force) return;
   try {
-    confirmed = normalize(await api('GET', '/api/state'));
+    confirmed = normalize(await (cloud.isCloud() ? cloud.fetchState() : api('GET', '/api/state')));
     /* Re-read rather than keep the copy from startup, for the reason map.js
        gives: the counter page drains the queue as it syncs. */
     queue = readCache()?.queue ?? [];
@@ -68,6 +69,8 @@ async function poll({ force = false } = {}) {
 }
 
 function askForToken() {
+  // On Sund 2.0 there is no access code: signing in is the counter's business.
+  if (cloud.isCloud()) { location.assign(`/login.html?next=${encodeURIComponent(location.pathname)}`); return; }
   const entered = prompt(t(lang, 'settings.tokenPrompt'), '');
   if (entered === null) return;
   token = entered.trim();

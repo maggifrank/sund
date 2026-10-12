@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="is">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8f4fa" media="(prefers-color-scheme: light)">
+<title>Sund</title>
+<meta name="robots" content="noindex">
+<!-- How a shared link looks: icons/og.png is made from the front page's map. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sund">
+<meta property="og:title" content="Sund">
+<meta property="og:description" content="Allar sundlaugar landsins á einu korti. Skráðu sundferðirnar þínar og sjáðu hvað hver ferð kostar í raun.">
+<meta property="og:url" content="https://sund.talva.is/login.html">
+<meta property="og:image" content="https://sund.talva.is/icons/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sund: kort af sundlaugum Íslands">
+<meta property="og:locale" content="is_IS">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Sund">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Sign-in and sign-up are one step: Supabase makes the account the first
+     time someone comes back from Google or Microsoft. -->
+<main class="app app--login">
+
+  <header class="head">
+    <a class="icon-btn" href="./" data-i18n-title="nav.back" data-i18n-aria="nav.back">←</a>
+    <h1 data-i18n="login.title"></h1>
+    <div class="head-right">
+      <select id="lang-select" class="lang-select" data-i18n-aria="a11y.langSwitch"></select>
+    </div>
+  </header>
+
+  <section class="card login-card">
+    <p class="home-lead" data-i18n="login.lead"></p>
+    <button type="button" class="login-provider" data-provider="google">
+      <span data-i18n="login.google"></span>
+    </button>
+    <button type="button" class="login-provider" data-provider="azure">
+      <span data-i18n="login.microsoft"></span>
+    </button>
+    <p id="login-status" class="note" role="status" hidden></p>
+    <p id="contact" class="note"></p>
+  </section>
+
+</main>
+<script type="module" src="login.js"></script>
+</body>
+</html>

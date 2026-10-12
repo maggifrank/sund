@@ -3,27 +3,28 @@
    hiding buttons. All the arithmetic, wording and the chart come from the same
    lib/ modules the private app uses, so the two cannot disagree. */
 
+import { loadSnapshot, loadRates } from './lib/snapshot.js';
+import { isCloud } from './lib/cloud.js';
 import {
-  normalize, costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, tripAt, dateFromKey,
-  tripInSeason
+  normalize, costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, dateFromKey
 } from './lib/state.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, ordinal, formatDate } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import {
   chartHTML, chartSignature, weekdayHTML, weekdaySignature,
-  bindChartTooltip, bindChartHighlight, monthKey
+  bindChartTooltip, bindChartHighlight
 } from './lib/chart.js';
 import { renderPoolTable } from './lib/pooltable.js';
 
 const LANG_KEY = 'sund.lang';
 
-let snapshot = { trips: [], settings: null, generatedAt: null, totals: null, poolTable: null };
+let snapshot = { monthTrips: [], weekdayTrips: [], settings: null, generatedAt: null, totals: null, poolTable: null };
 let rates = null;
 let lang = detectLang();
 
 const el = (id) => document.getElementById(id);
 const ui = {
-  trips: el('trips'), lastSwim: el('last-swim'), updated: el('updated'),
+  trips: el('trips'), updated: el('updated'),
   beLabel: el('be-label'), costPerTrip: el('cost-per-trip'), costPerTripSub: el('cost-per-trip-sub'),
   progressFill: el('progress-fill'), breakevenLine: el('breakeven-line'), breakevenNote: el('breakeven-note'),
   cardPerTrip: el('card-per-trip'), cardPerTripSub: el('card-per-trip-sub'),
@@ -31,8 +32,7 @@ const ui = {
   langSelect: el('lang-select'), chart: el('chart'), weekday: el('weekday'),
   rateNote: el('rate-note'), offCard: el('off-card'),
   season: el('season'),
-  pools: el('pools'), poolTable: el('pool-table'),
-  historyToggle: el('history-toggle'), historyBody: el('history-body'), historySummary: el('history-summary')
+  pools: el('pools'), poolTable: el('pool-table')
 };
 
 /* ---------- language ---------- */
@@ -58,7 +58,6 @@ function setLang(next) {
   applyStaticStrings();
   chartSig = null;
   weekdaySig = null;
-  historySig = null;
   render();
 }
 
@@ -90,73 +89,6 @@ function renderWeekday(trips) {
   if (sig === weekdaySig) return;
   weekdaySig = sig;
   ui.weekday.innerHTML = weekdayHTML(lang, trips);
-}
-
-let historySig = null;
-
-function renderHistory(trips, settings) {
-  ui.historySummary.textContent = trips.length
-    ? t(lang, 'history.summary', {
-        trips: plural(lang, trips.length, 'trip'),
-        date: formatDate(lang, tripAt(trips[trips.length - 1]), 'full')
-      })
-    : t(lang, 'history.none');
-
-  const sig = lang + '|' + trips.map(tripAt).join('|');
-  if (ui.historyBody.hidden || sig === historySig) return;
-  historySig = sig;
-
-  if (!trips.length) {
-    ui.historyBody.innerHTML = `<p class="history-empty">${t(lang, 'history.empty')}</p>`;
-    return;
-  }
-
-  // Newest first, but numbered in the order the swims happened.
-  const rows = [];
-  let openMonth = null;
-  trips.forEach((trip, i) => {
-    const d = new Date(tripAt(trip));
-    const key = monthKey(d);
-    if (key !== openMonth) {
-      openMonth = key;
-      const n = trips.filter((x) => monthKey(new Date(tripAt(x))) === key).length;
-      rows.push({ month: formatDate(lang, d, 'month'), count: plural(lang, n, 'trip'), items: [] });
-    }
-    /* Dates only. The snapshot has no real times in it either — see
-       stripTimes() in bin/publish.mjs — but never render one regardless. */
-    /* Tagged, not hidden or dimmed: the swim happened, it is just not this
-       card's. The app marks its rows the same way, and without it the list
-       would run to every swim while the counter above it showed far fewer,
-       with nothing on the page to reconcile the two. */
-    rows[rows.length - 1].items.push({
-      n: i + 1,
-      date: formatDate(lang, d, 'day'),
-      outside: !tripInSeason(trip, settings)
-    });
-  });
-
-  const frag = document.createDocumentFragment();
-  for (const group of rows.reverse()) {
-    const head = document.createElement('div');
-    head.className = 'month';
-    head.innerHTML = '<span></span><span class="month-count"></span>';
-    head.firstChild.textContent = group.month;
-    head.lastChild.textContent = group.count;
-    frag.append(head);
-    for (const item of group.items.reverse()) {
-      const row = document.createElement('div');
-      row.className = 'trip-row trip-row--readonly';
-      row.innerHTML = '<span class="n"></span><span class="when"><span class="line">' +
-                      '<span class="date"></span><span class="row-tag" hidden></span></span></span>';
-      row.querySelector('.n').textContent = `#${item.n}`;
-      row.querySelector('.date').textContent = item.date;
-      const tag = row.querySelector('.row-tag');
-      tag.hidden = !item.outside;
-      tag.textContent = item.outside ? t(lang, 'season.tag') : '';
-      frag.append(row);
-    }
-  }
-  ui.historyBody.replaceChildren(frag);
 }
 
 /* ---------- render ---------- */
@@ -191,13 +123,9 @@ function seasonLine(s) {
 function render() {
   const s = snapshot.settings;
   if (!s) return;
-  const trips = snapshot.trips;
-  /* Every figure below the counter is about the card, and the snapshot now
-     carries the whole history, so the count comes from the published totals
-     rather than from the length of the list. The fallback is not decoration: a
-     snapshot published before `counted` existed holds card trips only, and for
-     that one trips.length is exactly the right answer. */
-  const n = snapshot.totals?.counted ?? trips.length;
+  /* Every figure below the counter is about the card, and comes from the
+     published totals: the snapshot carries no swims to count. */
+  const n = snapshot.totals?.counted ?? 0;
   const be = breakEvenTrips(s);
   const cashBe = cashBreakEvenTrips(s);
   const perCardTrip = cardPerTrip(s);
@@ -232,13 +160,6 @@ function render() {
   const season = seasonLine(s);
   ui.season.hidden = season === null;
   ui.season.textContent = season ?? '';
-
-  /* The most recent swim of any kind, which is what the app shows too — reading
-     trips[n - 1] would now point at whichever trip happens to sit at the card's
-     count, and name the wrong day. */
-  ui.lastSwim.textContent = trips.length
-    ? t(lang, 'counter.lastSwim', { date: formatDate(lang, tripAt(trips[trips.length - 1]), 'full') })
-    : t(lang, 'counter.none');
 
   const cpt = costPerTrip(s, n);
   ui.costPerTrip.textContent = cpt === null ? '—' : money(lang, cpt, rates);
@@ -276,9 +197,30 @@ function render() {
 
   renderRateNote();
   renderPools(snapshot.poolTable);
-  renderChart(trips);
-  renderWeekday(trips);
-  renderHistory(trips, s);
+  renderChart(snapshot.monthTrips);
+  renderWeekday(snapshot.weekdayTrips);
+}
+
+/* The charts are drawn from a list of trips, and the snapshot publishes only
+   how many fell in each month and on each weekday — see sums() in
+   bin/publish.mjs. So each chart gets a stand-in list that adds up to the same
+   counts: the 15th of the month for the monthly chart, and a day of the right
+   weekday for the pie. They are never shown as dates. A snapshot from before
+   the sums existed still carries its trips, and those are used as they are. */
+function standIns(state, trips) {
+  if (!state.byMonth || !Array.isArray(state.byWeekday)) return { monthTrips: trips, weekdayTrips: trips };
+  const monthTrips = [];
+  for (const key of Object.keys(state.byMonth).sort()) {
+    const [y, m] = key.split('-').map(Number);
+    const at = new Date(y, m - 1, 15, 12).toISOString();
+    for (let i = 0; i < state.byMonth[key]; i++) monthTrips.push({ at });
+  }
+  const weekdayTrips = [];
+  state.byWeekday.forEach((count, day) => {
+    const at = new Date(2024, 0, 7 + day, 12).toISOString();   // 7 January 2024 was a Sunday
+    for (let i = 0; i < count; i++) weekdayTrips.push({ at });
+  });
+  return { monthTrips, weekdayTrips };
 }
 
 /* ---------- start ---------- */
@@ -292,36 +234,41 @@ for (const code of LANGS) {
 ui.langSelect.value = lang;
 ui.langSelect.addEventListener('change', () => setLang(ui.langSelect.value));
 
-ui.historyToggle.addEventListener('click', () => {
-  const open = ui.historyBody.hidden;
-  ui.historyBody.hidden = !open;
-  ui.historyToggle.setAttribute('aria-expanded', String(open));
-  if (open) { historySig = null; render(); }
-});
-
 applyStaticStrings();
 bindChartTooltip(ui.chart);
 bindChartHighlight(ui.chart);
 bindChartHighlight(ui.weekday);
 
-const loadJSON = async (path) => {
-  try {
-    const res = await fetch(path, { cache: 'no-cache' });
-    return res.ok ? await res.json() : null;
-  } catch {
-    return null;
-  }
-};
-
-const [state, rateData] = await Promise.all([loadJSON('./state.json'), loadJSON('./rates.json')]);
+const [state, rateData] = await Promise.all([loadSnapshot(), loadRates()]);
 rates = rateData;
+/* On Sund 2.0 any address can be a username, so one that is not, or whose
+   page is switched off, says so instead of drawing an empty counter. */
+if (!state && isCloud()) showMissing();
 if (state) {
   const clean = normalize(state);
   snapshot = {
-    trips: clean.trips, settings: clean.settings,
+    ...standIns(state, clean.trips), settings: clean.settings,
     generatedAt: state.generatedAt ?? null,
     totals: state.totals ?? null,
     poolTable: Array.isArray(state.poolTable) ? state.poolTable : null
   };
 }
 render();
+
+function showMissing() {
+  const card = document.createElement('section');
+  card.className = 'card missing';
+  const title = document.createElement('h2');
+  title.textContent = t(lang, 'public.missingTitle');
+  const text = document.createElement('p');
+  text.className = 'home-lead';
+  text.textContent = t(lang, 'public.missing');
+  const home = document.createElement('a');
+  home.className = 'login-btn';
+  home.href = '/';
+  home.textContent = t(lang, 'public.home');
+  card.append(title, text, home);
+  const main = document.querySelector('main');
+  main.replaceChildren(...[main.querySelector('header'), card].filter(Boolean));
+  document.title = `Sund · ${t(lang, 'public.missingTitle')}`;
+}

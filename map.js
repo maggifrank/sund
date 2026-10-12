@@ -9,6 +9,7 @@
    page has no business overwriting it. */
 
 import { emptyState, normalize, applyQueue } from './lib/state.js';
+import * as cloud from './lib/cloud.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import {
   poolRows, placeable, isAbroad, mapHTML, mapSignature, bindMapTooltip, bindMapZoom
@@ -60,7 +61,7 @@ async function api(method, path) {
 async function poll({ force = false } = {}) {
   if (document.hidden && !force) return;
   try {
-    const next = normalize(await api('GET', '/api/state'));
+    const next = normalize(await (cloud.isCloud() ? cloud.fetchState() : api('GET', '/api/state')));
     confirmed = next;
     /* Re-read the queue rather than keep the copy loaded at startup: the counter
        page drains it as it syncs and saves after each one, so the stored queue
@@ -77,6 +78,8 @@ async function poll({ force = false } = {}) {
 }
 
 function askForToken() {
+  // On Sund 2.0 there is no access code: signing in is the counter's business.
+  if (cloud.isCloud()) { location.assign(`/login.html?next=${encodeURIComponent(location.pathname)}`); return; }
   const entered = prompt(t(lang, 'settings.tokenPrompt'), '');
   if (entered === null) return;
   token = entered.trim();

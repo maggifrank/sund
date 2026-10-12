@@ -19,6 +19,13 @@ import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
 import { weekStreak, streakText } from './lib/passport.js';
 import { celebrateAdd, celebratePool, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
+import * as cloud from './lib/cloud.js';
+import { bindAccount } from './lib/account.js';
+
+/* On Sund 2.0 the same app talks to Supabase instead of serve.js: see
+   lib/cloud.js. Everything below the network layer is shared. */
+const CLOUD = cloud.isCloud();
+let renderAccount = () => {};
 
 const CACHE_KEY = 'sund.cache.v2';
 const TOKEN_KEY = 'sund.token';
@@ -104,6 +111,9 @@ const REQUESTS = {
   settings: (op) => api('PUT', '/api/settings', op.patch)
 };
 
+const cloudRequests = cloud.requests(() => confirmed);
+const getState = () => (CLOUD ? cloud.fetchState() : api('GET', '/api/state'));
+
 async function flush() {
   if (flushing || !queue.length) return;
   flushing = true;
@@ -112,7 +122,7 @@ async function flush() {
     while (queue.length) {
       const op = queue[0];
       try {
-        confirmed = normalize(await REQUESTS[op.kind](op));
+        confirmed = normalize(await (CLOUD ? cloudRequests : REQUESTS)[op.kind](op));
       } catch (err) {
         if (!err.fatal) throw err;
         queue.shift();          // drop it and keep going, rather than jam
@@ -129,7 +139,7 @@ async function flush() {
     if (status !== 'error') setStatus('synced');
   } catch (err) {
     setStatus(err.locked ? 'locked' : 'offline');
-    if (err.locked) askForToken();
+    if (err.locked || err.noProfile) askForToken(err);
   } finally {
     flushing = false;
     render();
@@ -137,6 +147,9 @@ async function flush() {
 }
 
 function enqueue(op) {
+  /* Made here, once, so a swim retried after a dropped answer is recognised
+     as the same swim rather than logged twice. */
+  if (CLOUD && op.kind === 'add' && !op.cid) op.cid = crypto.randomUUID();
   queue.push(op);
   saveCache();
   render();
@@ -147,7 +160,7 @@ async function poll({ force = false } = {}) {
   if (queue.length || flushing) return;
   if (document.hidden && !force) return;
   try {
-    const next = normalize(await api('GET', '/api/state'));
+    const next = normalize(await getState());
     if (next.rev !== confirmed.rev) {
       confirmed = next;
       saveCache();
@@ -156,7 +169,7 @@ async function poll({ force = false } = {}) {
     render();
   } catch (err) {
     setStatus(err.locked ? 'locked' : 'offline');
-    if (err.locked) askForToken();
+    if (err.locked || err.noProfile) askForToken(err);
     render();
   }
 }
@@ -260,7 +273,7 @@ function renderRateNote() {
 
 async function loadRates() {
   try {
-    rates = await api('GET', '/api/rates');
+    rates = CLOUD ? await cloud.rates() : await api('GET', '/api/rates');
   } catch {
     rates = null;             // stay in ISK rather than invent a rate
   }
@@ -511,6 +524,7 @@ function reverseKeepingMonths(nodes) {
 /* ---------- render ---------- */
 
 function render() {
+  renderAccount();
   const state = view();
   const s = state.settings;
   /* Only swims inside the card's dates, at one of the three pools it covers,
@@ -1005,7 +1019,13 @@ ui.sync.addEventListener('click', () => {
   queue.length ? flush() : poll({ force: true });
 });
 
-function askForToken() {
+function askForToken(err = {}) {
+  if (CLOUD) {
+    /* Signed out, or signed in without having picked a username yet. The
+       queue stays in this device's cache and goes up after signing back in. */
+    location.assign(err.noProfile ? '/welcome.html' : `/login.html?next=${encodeURIComponent(location.pathname)}`);
+    return;
+  }
   const entered = prompt(t(lang, 'settings.tokenPrompt'), '');
   if (entered === null) return;
   token = entered.trim();
@@ -1038,6 +1058,7 @@ for (const [button, radius, fill] of [
 ]) {
   attachTapHaptics(button, { radius, fill });
 }
+if (CLOUD) renderAccount = bindAccount({ lang: () => lang, view, refresh: () => poll({ force: true }) });
 startWatching();
 loadCache();
 render();

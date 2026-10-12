@@ -10,6 +10,7 @@
    The drawing itself is the same lib/poolmap.js the private page uses, so the
    two cannot disagree about what has been swum in. */
 
+import { loadSnapshot } from './lib/snapshot.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import {
   poolRowsFromTotals, totalsIdentifyPools, placeable, isAbroad,
@@ -237,8 +238,7 @@ const countryZoom = bindMapZoom(ui.country, {
 });
 
 try {
-  const res = await fetch('./state.json', { cache: 'no-cache' });
-  const state = res.ok ? await res.json() : null;
+  const state = await loadSnapshot();
   if (state) {
     snapshot = {
       poolTable: Array.isArray(state.poolTable) ? state.poolTable : null,

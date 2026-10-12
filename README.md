@@ -278,10 +278,9 @@ switched off, simply have no pool — the count is unaffected.
 
 **The public site gets the table, but only as totals.** `bin/publish.mjs`
 publishes the finished rows — an id, a name, a count and whether the card covers
-it — and still drops the pool from every trip, publishes an empty pool list, and
-drops the time, the same way it always did. So the page can say where the
-swimming happens without saying *when* any of it happened: there is no pool
-attached to a date anywhere in `state.json`, and the saved pool list — the one
+it — publishes no trips at all, and publishes an empty pool list. So the page
+can say where the swimming happens without saying *when* any of it happened:
+there is no swim and no date in `state.json`, and the saved pool list — the one
 holding a position for anywhere named on the spot — goes out empty.
 
 The id is what lets [the map](#on-the-public-site) put a row on the country. It
@@ -303,13 +302,9 @@ did not cover, split by which of the two rules left them out, but as **plain
 counts** — no dates. An older snapshot without those counts simply hides the
 line.
 
-The public snapshot contains **every trip**, plus plain counts saying how many of
-them the card covers. It used to contain the card's own and nothing else, which
-quietly cut its monthly chart short the day the card grew dates; the money there
-now reads the published count rather than the length of the list. The pool on
-each trip is still stripped, so a for-fun swim is published as a date like any
-other, and the table above stays the only thing that says where the swimming
-happened.
+The public snapshot contains **no trips at all**, only counts: the totals, the
+pool table, and swims per month and per weekday. See
+[The public read-only site](#the-public-read-only-site).
 
 ## The map
 
@@ -877,6 +872,16 @@ touch a few times a week, polling is less to go wrong.
 both backends *and* by the browser, so the two deployments can't drift apart and
 the break-even maths exists in exactly one place.
 
+## Sund 2.0
+
+The same app for anyone: sign in with Google or Microsoft, keep your own count,
+and show a sums-only page at `sund.talva.is/<username>` if you want to. The
+pages are the ones described here; with
+`<meta name="sund-backend" content="supabase">` they talk to Supabase
+(`lib/cloud.js`) instead of serve.js. Building and going live:
+[web/README.md](web/README.md). The database and its privacy rules:
+[supabase/README.md](supabase/README.md).
+
 ## Running it locally
 
 ```bash
@@ -913,9 +918,22 @@ user, never as root. See [DEPLOY.md](DEPLOY.md).
 
 ## The public read-only site
 
-<https://sund.talva.is> from outside the LAN — a snapshot of the count, the
-cost per trip, break-even, the chart, the pool table and the map, with no way to
-change anything. Its direct Netlify address is <https://sund-swim.netlify.app>.
+<https://sund.talva.is> from outside the LAN is two things. **The front page is
+the pools**: every pool in Iceland on the map and in a list by region, each with
+its own page, and a *Log in / Sign up* button. It reads no snapshot and carries
+nobody's swimming, so every pool is drawn the same — a pool with `visits: null`
+is drawn plainly rather than as one not yet swum in. The sign-in page says
+accounts are coming; there is nothing to sign in to yet.
+
+**The count lives at <https://sund.talva.is/maggifrank/>** — a snapshot of the
+count, the cost per trip, break-even, the chart, the pool table and the map,
+with no way to change anything. That is the address every user's page will have
+once there are accounts; `SUND_PUBLIC_USER` sets the name. Its pages carry a
+`<base href="/maggifrank/">`, because Netlify serves the folder without its
+trailing slash too, and every relative path would otherwise resolve against the
+root. The old `/map.html` redirects to the front page.
+
+The direct Netlify address is <https://sund-swim.netlify.app>.
 
 The same hostname serves the private app inside the LAN, through split-horizon
 DNS: internally it resolves to Caddy and on to the container, externally to
@@ -928,31 +946,14 @@ It is read-only **by construction, not by hiding buttons**: the deploy is static
 files plus a `state.json` snapshot, with no API and no function behind it. There
 is nothing to authenticate because there is nothing to write to.
 
-The page shows **every swim, and counts only the card's**. The big number, the
-cost per trip and the break-even are the card's swims — `totals.counted`, worked
-out at publish time, because the snapshot's own list is no longer the answer —
-while the chart, the weekday pie and the history draw the whole history. That is
-the same rule the app states for an off-card swim: it shows in the chart, the
-history and the pool table, but never in the money. The history marks the ones
-the card does not cover with the same pill the app uses, so the list and the
-counter above it always reconcile.
-
-It did not used to. The snapshot published `cardTrips()` alone, which nothing
-noticed until the card grew dates: from that day the public chart began at the
-season start and every month before it vanished, while the app beside it still
-drew the lot. Publishing the dates of off-card swims is the same disclosure the
-card's own swims already make — the count was public in `totals.all` and in a
-pool table counted over everything, so how much swimming there was outside the
-card was never the secret, only when.
-
-The history shows **dates without times**. The times are stripped from the
-snapshot itself, not merely hidden in the page — otherwise they would still sit
-in `state.json` for anyone who opened it directly. Every published trip is
-anchored at local midday, which preserves the date and the count (two swims on
-one day stay two rows) while dropping the hour. Nothing on the public page needs
-the time: the count, cost per trip, break-even and the monthly chart all work
-off dates alone. The private app is unaffected and still records and shows exact
-times.
+The page shows **sums, not swims**. The big number, the cost per trip and the
+break-even are the card's swims, worked out at publish time as `totals.counted`.
+The monthly chart and the weekday pie are drawn from two more sums,
+`byMonth` and `byWeekday`, counted over the whole history. No swim is
+published on its own: `state.json` carries no trip list, no dates, no times and
+no last-swim date, so the page has no history list and nothing in the file can
+put a swim on a day. The private app is unaffected and still records and shows
+exact times.
 
 The **pool table** is stripped the same way, in the other direction: the counts
 are published, the trips they were counted from are not. A row says the pool and
@@ -1079,7 +1080,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `index.html` `styles.css` `app.js` | the private read/write app |
 | `map.html` `map.js` | the map page — the private app only |
 | `pool.html` `pool.js` | a pool's page — the private app only |
-| `public/` | the public read-only pages — the counter, the map and a pool's page |
+| `public/` | the public read-only pages — the front page and its sign-in page, and one user's counter, map and pool pages |
 | `icons/icon.svg` | the home screen icon — the source for everything else in `icons/` |
 | `manifest.webmanifest` | name and icons for "Add to Home Screen" |
 | `lib/state.js` | trips, settings and the break-even arithmetic |
