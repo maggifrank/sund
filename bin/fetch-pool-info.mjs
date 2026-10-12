@@ -257,7 +257,10 @@ const hhmm = (h, m) => `${h.padStart(2, '0')}:${m}`;
 /* The value half of a line of hours: times, or closed. Anything else is not a
    line of hours. */
 function timeOf(value) {
-  const v = value.trim();
+  /* A footnote star on a time, "16:00* – 21:00", is moved off it to the end:
+     between the two ends of a span it would split it into two times. */
+  const stars = value.match(/(?<=\d[:.]\d{2})\*+/)?.[0] ?? '';
+  const v = `${value.replace(/(\d[:.]\d{2})\*+/g, '$1').trim()}${stars ? ` ${stars}` : ''}`;
   if (CLOSED.test(v)) return { closed: true, times: [], extra: null };
   if (!STARTS_WITH_TIME.test(v)) return null;
   const times = [...v.matchAll(TIME)].map((m) =>
@@ -354,7 +357,10 @@ function readHours(html) {
        it is not a line of hours. */
     const row = line.match(/^(.{1,50}?)\s*[:;]\s*((?:kl\.?\s*)?\d{1,2}[:.]\d{2}.*|lokað.*)$/iu) ??
                 line.match(/^(\D{2,50}?|\d{1,2}\.?\s*\p{L}.{0,45}?)\s+(?:[–-]\s+)?((?:kl\.?\s*)?\d{1,2}[:.]\d{2}\s*[-–—]\s*\d{1,2}[:.]\d{2}.*|lokað(?!\p{L}).*)$/iu);
-    const time = row && timeOf(row[2]);
+    /* A label that starts with a star is the footnote under the hours, a
+       sentence with times in it, not a row: Glerárlaug's "*Aðeins er opið í
+       potta og sánu á útisvæði milli: 16:00 – 18:00 ...". */
+    const time = row && !row[1].trim().startsWith('*') && timeOf(row[2]);
     if (time) {
       const days = parseDays(row[1]);
       block.rows.push({ label: row[1].trim(), days, season: days ? null : seasonLabel(row[1]), ...time });
