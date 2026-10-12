@@ -1,11 +1,15 @@
-# Sund is a static site plus one function; no build step for the front end.
+# Sund 2.0 on Netlify: static files only, built by bin/build-web.mjs. The
+# browser talks to Supabase itself (lib/cloud.js), so there are no functions
+# and no environment variables. The Supabase address and publishable key are
+# public by design; the secret service_role key never goes here.
+#
+# web/netlify.toml says the same, so the site builds the same whether its
+# base directory is left empty (this file) or set to "web" (that one).
 [build]
-  publish = "."
-  command = ""
-
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
+  command = "node bin/build-web.mjs web/dist"
+  publish = "web/dist"
+  # Build every commit: the site is made from the whole repo.
+  ignore = "exit 1"
 
 [[headers]]
   for = "/*"
@@ -13,8 +17,3 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Cache-Control = "no-store"

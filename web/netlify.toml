@@ -1,10 +1,9 @@
-# Sund 2.0 on Netlify. Set the site's base directory to "web" so this file is
-# the one Netlify reads (Site configuration → Build & deploy → Build settings).
+# Sund 2.0 on Netlify, for a site whose base directory is "web". The
+# netlify.toml at the repo root is the same build for a site with no base
+# directory; keep the two in step.
 #
-# Static files only: the browser talks to Supabase itself (lib/cloud.js). There
-# is deliberately no [functions] block and no functions directory under web/:
-# the one-person app's read/write API in netlify/functions must never be
-# deployed to a public site. No environment variables are needed either; the
+# Static files only: the browser talks to Supabase itself (lib/cloud.js), so
+# there are no functions. No environment variables are needed either; the
 # Supabase address and publishable key are public by design and live in
 # lib/cloud.js. The secret service_role key never goes here.
 [build]
