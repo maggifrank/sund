@@ -85,11 +85,20 @@ const homePool = (html) => html
 /* Old addresses, then the public pages. Netlify serves a file that exists
    before it reads a rule that is not forced, so /app/, /login.html and the rest
    are never taken for usernames; only an address with no file behind it is.
-   The usernames that would shadow a real path are reserved in the database. */
+   The usernames that would shadow a real path are reserved in the database.
+
+   No "/:user  /:user/  301" here: Netlify matches a rule with or without the
+   trailing slash, so that rule caught /name/ too and sent it to itself
+   forever. /:user/* takes /name as well as /name/, and the page adds the
+   slash itself (userSlash) so its relative links have the right base. */
 const REDIRECTS = `/map.html     /             301
-/:user        /:user/       301
 /:user/*      /_u/:splat    200
 `;
+
+/* First thing in a public page's <head>: /name becomes /name/ before anything
+   relative (styles, scripts, links to map.html) is fetched from the wrong place. */
+const userSlash = (html) => html.replace('<head>', `<head>
+<script>if (/^\\/[^/]+$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);</script>`);
 
 async function copy(list, dir, transform) {
   for (const [from, to] of list) {
@@ -122,7 +131,10 @@ async function missingImports(dir) {
 
 await fs.rm(OUT, { recursive: true, force: true });
 for (const [sub, list] of Object.entries(SITES)) {
-  await copy(list, path.join(OUT, sub), (to, html) => (sub === '' && to === 'pool.html' ? homePool(html) : html));
+  await copy(list, path.join(OUT, sub), (to, html) =>
+    sub === '' && to === 'pool.html' ? homePool(html)
+      : sub === '_u' && to === 'index.html' ? userSlash(html)
+        : html);
 }
 await fs.writeFile(path.join(OUT, '_redirects'), REDIRECTS);
 
