@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="is">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8f4fa" media="(prefers-color-scheme: light)">
+<title>Sund</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Sund">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- A placeholder until accounts exist: the buttons are where Google and
+     Microsoft sign-in will go, and say plainly that they are not there yet. -->
+<main class="app app--login">
+
+  <header class="head">
+    <a class="icon-btn" href="./" data-i18n-title="nav.back" data-i18n-aria="nav.back">←</a>
+    <h1 data-i18n="login.title"></h1>
+    <div class="head-right">
+      <select id="lang-select" class="lang-select" data-i18n-aria="a11y.langSwitch"></select>
+    </div>
+  </header>
+
+  <section class="card login-card">
+    <p class="home-lead" data-i18n="login.lead"></p>
+    <button type="button" class="login-provider" disabled>
+      <span data-i18n="login.google"></span>
+      <span class="pool-tag" data-i18n="login.soon"></span>
+    </button>
+    <button type="button" class="login-provider" disabled>
+      <span data-i18n="login.microsoft"></span>
+      <span class="pool-tag" data-i18n="login.soon"></span>
+    </button>
+    <p id="contact" class="note"></p>
+  </section>
+
+</main>
+<script type="module" src="login.js"></script>
+</body>
+</html>

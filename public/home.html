@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="is">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8f4fa" media="(prefers-color-scheme: light)">
+<title>Sund</title>
+<meta name="description" content="Every swimming pool in Iceland on one map, with opening hours, prices and directions.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Sund">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- The public front page. It carries nobody's swimming: no snapshot is read,
+     every pool is drawn the same, and the only way further in is the sign-in
+     button. A user's own numbers live at /<username>/. -->
+<main class="app app--map app--home">
+
+  <header class="head">
+    <h1>Sund</h1>
+    <div class="head-right">
+      <select id="lang-select" class="lang-select" data-i18n-aria="a11y.langSwitch"></select>
+      <a class="login-btn" href="login.html" data-i18n="home.login"></a>
+    </div>
+  </header>
+
+  <section class="counter home-intro">
+    <p class="home-lead" data-i18n="home.lead"></p>
+  </section>
+
+  <section class="card map-card map-card--country" aria-labelledby="country-label">
+    <div id="country-label" class="label" data-i18n="map.country"></div>
+    <div class="map-frame">
+      <div id="country" class="map"></div>
+      <div class="map-zoom" id="country-zoom" role="group" data-i18n-aria="map.zoomGroup">
+        <button type="button" class="map-zoom-btn" data-zoom="in" data-i18n-aria="map.zoomIn" data-i18n-title="map.zoomIn">+</button>
+        <button type="button" class="map-zoom-btn" data-zoom="out" data-i18n-aria="map.zoomOut" data-i18n-title="map.zoomOut" disabled>−</button>
+        <button type="button" class="map-zoom-btn" data-zoom="reset" data-i18n-aria="map.zoomReset" data-i18n-title="map.zoomReset" hidden>⤢</button>
+      </div>
+    </div>
+    <ul class="map-legend">
+      <li><span class="map-key is-pool" aria-hidden="true"></span><span data-i18n="home.legendPool"></span></li>
+      <li><span class="map-key is-group is-pool-group" aria-hidden="true">3</span><span data-i18n="map.legendGroup"></span></li>
+    </ul>
+    <p class="map-credit"><span data-i18n="map.creditCoast"></span>:
+      <a href="https://www.natt.is/en/resources/open-data" target="_blank" rel="noopener">IS 50V, Náttúrufræðistofnun</a>
+      · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="license noopener">CC BY 4.0</a></p>
+  </section>
+
+  <!-- Open from the start: on this page the list is the content, not a detail. -->
+  <section class="card history map-pages" aria-labelledby="pages-label">
+    <div class="disclosure disclosure--static">
+      <span id="pages-label" class="label" data-i18n="home.pools"></span>
+      <span id="pages-summary" class="sub"></span>
+    </div>
+    <div id="pages-panel"></div>
+  </section>
+
+</main>
+<script type="module" src="home.js"></script>
+</body>
+</html>

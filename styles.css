@@ -1151,6 +1151,8 @@ label.pool-pick {
    zoom — see marksMarkup() — so the stylesheet only gives the colours. */
 .map-mark.is-done { fill: var(--map-done); stroke: var(--map-land); }
 .map-mark.is-todo { fill: var(--map-land); stroke: var(--map-todo); }
+/* A pool with nobody's swimming attached — the public home page's map. */
+.map-mark.is-pool { fill: var(--accent); stroke: var(--map-land); }
 
 .map-hit { fill: transparent; }
 
@@ -1159,6 +1161,7 @@ label.pool-pick {
 .map-group.is-done  { fill: var(--map-done); stroke: var(--map-land); }
 .map-group.is-todo  { fill: var(--map-land); stroke: var(--map-todo); }
 .map-group.is-mixed { fill: var(--map-land); }
+.map-group.is-pool  { fill: var(--accent); stroke: var(--map-land); }
 .map-group-arc { fill: none; }
 .map-group-arc.is-done { stroke: var(--map-done); }
 .map-group-arc.is-todo { stroke: var(--map-todo); }
@@ -1172,6 +1175,7 @@ label.pool-pick {
   pointer-events: none;
 }
 .map-group-count.is-done { fill: var(--map-on-done); }
+.map-group-count.is-pool { fill: var(--accent-ink); }
 
 /* A single pool's tooltip is one line; a badge's is a list, so line breaks in
    the text are kept and a name too long for a phone wraps rather than running
@@ -1220,6 +1224,7 @@ label.pool-pick {
 }
 .map-key.is-done { background: var(--map-done); }
 .map-key.is-todo { border: 2.5px solid var(--map-todo); }
+.map-key.is-pool { background: var(--accent); }
 /* The badge in the legend: a split ring round a number, as on the map. */
 .map-key.is-group {
   width: 19px;
@@ -1586,3 +1591,54 @@ a.pool-name:hover { text-decoration: underline; }
   margin: 0;
   opacity: 0;
 }
+
+/* ---- the public front page and its sign-in page ---- */
+
+/* The way in, and the one thing on the front page that is not about pools. */
+.login-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.login-btn:hover { filter: brightness(1.08); }
+
+.home-lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* The list's heading on the front page: a disclosure's look, without the button. */
+.disclosure--static { cursor: default; grid-template-columns: auto 1fr; }
+
+/* The legend's badge, in the front page's one colour. */
+.map-key.is-pool-group {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.app--login { max-width: 480px; }
+.login-card { display: flex; flex-direction: column; gap: 12px; }
+.login-provider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+}
+.login-provider:disabled { color: var(--ink-dim); cursor: not-allowed; }

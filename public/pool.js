@@ -38,7 +38,7 @@ function render() {
      visits at all, rather than "no trips here yet" about every pool — the same
      line the map draws. */
   const known = totalsIdentifyPools(poolTable);
-  const rows = known ? poolRowsFromTotals(poolTable) : allPools([]).map((p) => ({ ...p, visits: 0 }));
+  const rows = known ? poolRowsFromTotals(poolTable) : allPools([]).map((p) => ({ ...p, visits: null }));
   const pool = rows.find((r) => r.id === id) ?? null;
   const published = known ? poolTable.find((r) => r.id === id) : null;
 
@@ -81,7 +81,9 @@ ui.back.addEventListener('click', (e) => {
 });
 
 render();
-try {
+/* The front page's copy of this page belongs to nobody, so it has no snapshot
+   to read — see homePool() in bin/publish.mjs. */
+if (!document.body.hasAttribute('data-no-snapshot')) try {
   const res = await fetch('./state.json', { cache: 'no-cache' });
   const state = res.ok ? await res.json() : null;
   poolTable = Array.isArray(state?.poolTable) ? state.poolTable : null;

@@ -913,9 +913,22 @@ user, never as root. See [DEPLOY.md](DEPLOY.md).
 
 ## The public read-only site
 
-<https://sund.talva.is> from outside the LAN — a snapshot of the count, the
-cost per trip, break-even, the chart, the pool table and the map, with no way to
-change anything. Its direct Netlify address is <https://sund-swim.netlify.app>.
+<https://sund.talva.is> from outside the LAN is two things. **The front page is
+the pools**: every pool in Iceland on the map and in a list by region, each with
+its own page, and a *Log in / Sign up* button. It reads no snapshot and carries
+nobody's swimming, so every pool is drawn the same — a pool with `visits: null`
+is drawn plainly rather than as one not yet swum in. The sign-in page says
+accounts are coming; there is nothing to sign in to yet.
+
+**The count lives at <https://sund.talva.is/maggifrank/>** — a snapshot of the
+count, the cost per trip, break-even, the chart, the pool table and the map,
+with no way to change anything. That is the address every user's page will have
+once there are accounts; `SUND_PUBLIC_USER` sets the name. Its pages carry a
+`<base href="/maggifrank/">`, because Netlify serves the folder without its
+trailing slash too, and every relative path would otherwise resolve against the
+root. The old `/map.html` redirects to the front page.
+
+The direct Netlify address is <https://sund-swim.netlify.app>.
 
 The same hostname serves the private app inside the LAN, through split-horizon
 DNS: internally it resolves to Caddy and on to the container, externally to
@@ -1079,7 +1092,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `index.html` `styles.css` `app.js` | the private read/write app |
 | `map.html` `map.js` | the map page — the private app only |
 | `pool.html` `pool.js` | a pool's page — the private app only |
-| `public/` | the public read-only pages — the counter, the map and a pool's page |
+| `public/` | the public read-only pages — the front page and its sign-in page, and one user's counter, map and pool pages |
 | `icons/icon.svg` | the home screen icon — the source for everything else in `icons/` |
 | `manifest.webmanifest` | name and icons for "Add to Home Screen" |
 | `lib/state.js` | trips, settings and the break-even arithmetic |
