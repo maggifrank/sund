@@ -70,6 +70,17 @@ The answer goes in `pools.status` through `set_pool_status()`. A closed pool is
 left off the front page, and its page says it has closed. Swims logged there
 stay. Needs migration `20261012170000_pool_status.sql`.
 
+## Pools new on sundlaugar.is
+
+When the nightly crawl finds a pool on sundlaugar.is that `lib/pools.js` does
+not have, it reads its page anyway and writes it to `lib/newpools.js`. Once the
+crawl's pull request is merged, `/admin/` lists those pools. The directory gives
+no position, so Find looks the address up on Nominatim (or the admin pastes
+one), and Add puts the pool and its details in together through `add_pool()`,
+under the admin's own sign-in. GitHub holds no database key. A pool already
+added is offered its details again when the crawl reads newer ones
+(`set_pool_info()`). Needs migration `20261012180000_add_pool.sql`.
+
 ## Testing it
 
     bin/test-db.sh

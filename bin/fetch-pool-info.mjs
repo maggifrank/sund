@@ -42,9 +42,14 @@
  *   node bin/fetch-pool-info.mjs --region reykjanes --cache data/raw   # keep the pages; reuse them next run
  *   node bin/fetch-pool-info.mjs --all --write --report run.json        # and say what went wrong, as JSON
  *
+ * A pool the directory lists under a name lib/pools.js does not know is read
+ * all the same and written, with --write, to lib/newpools.js, which /admin/
+ * offers to add to the shared list. One that is a known pool under a new name
+ * wants a line in ALIAS below instead.
+ *
  * --report is for the nightly crawl (.github/workflows/crawl-sundlaugar.yml),
- * which hands the problems — a name the directory has that lib/pools.js does
- * not, most of all — to bin/diff-pool-info.mjs to put in front of a person.
+ * which hands the new pools and the problems to bin/diff-pool-info.mjs to put
+ * in front of a person.
  */
 
 import fs from 'node:fs/promises';
@@ -54,6 +59,7 @@ import { BUILT_IN } from '../lib/pools.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'lib', 'poolinfo.js');
+const NEW_OUT = path.join(ROOT, 'lib', 'newpools.js');
 const UA = 'sund-pool-info/1.0 (+https://sund.talva.is)';
 const API = 'https://sundlaugar.is/wp-json/wp/v2';
 
@@ -669,6 +675,9 @@ if (unknown.length) {
 const byName = new Map(BUILT_IN.map((p) => [p.name, p.id]));
 const ids = new Set(BUILT_IN.map((p) => p.id));
 const fetched = [];
+/* Pools the directory lists that lib/pools.js does not: read all the same, and
+   written to lib/newpools.js for /admin/ to offer. */
+const found = [];
 const problems = [];
 const skipped = [];
 
@@ -685,12 +694,15 @@ for (const region of asked) {
   for (const entry of entries) {
     const name = decode(entry.title.rendered).trim();
     const id = ALIAS[name] ?? byName.get(name);
-    if (!id) { problems.push(`${name} — not in lib/pools.js under that name; add it to ALIAS`); continue; }
-
     const read = readPool(await page(entry.slug, entry.link));
     if (!read) { problems.push(`${name} — the page is not the pool template; nothing read`); continue; }
 
     const kind = entry.tags.map((t) => KINDS[tags.get(t)]).find(Boolean) ?? 'pool';
+    if (!id) {
+      found.push({ id: entry.slug, name, region: region.slug, kind, source: entry.link, fetched: TODAY, ...read });
+      process.stderr.write(`  ${name} (new)\n`);
+      continue;
+    }
     keep(id, { name, region: region.slug, kind, source: entry.link, fetched: TODAY, ...read });
   }
 }
@@ -713,14 +725,21 @@ for (const link of links) {
 
   const name = decode(html.match(/<title>([^<]+)<\/title>/)?.[1] ?? slug).split(/\s+[-|–]\s+/)[0].trim();
   const id = ids.has(slug) ? slug : (ALIAS[name] ?? byName.get(name));
-  if (!id) { problems.push(`${name} (${slug}) — not in lib/pools.js under that name or slug; add it to ALIAS`); continue; }
   /* Two pools are in both sections: Hellulaug, and Bláa Lónið as Blue Lagoon.
      The pool directory's page is the fuller one and wins. */
-  if (fetched.some((p) => p.id === id)) { skipped.push(`${slug} — already read from the pool directory`); continue; }
+  if (fetched.some((p) => p.id === id) || found.some((p) => p.name === name)) {
+    skipped.push(`${slug} — already read from the pool directory`);
+    continue;
+  }
 
   const read = readPool(html);
   if (!read) { problems.push(`${name} — the page is not the pool template; nothing read`); continue; }
   const kind = /\btag-badlon\b/.test(html) ? 'lagoon' : 'natural';
+  if (!id) {
+    found.push({ id: slug, name, region: region.slug, kind, source: link, fetched: TODAY, ...read });
+    process.stderr.write(`  ${name} (new)\n`);
+    continue;
+  }
   keep(id, { name: BUILT_IN.find((p) => p.id === id).name, region: region.slug, kind, source: link, fetched: TODAY, ...read });
 }
 
@@ -749,13 +768,16 @@ for (const p of fetched) {
     console.log('  no price table');
   }
 }
+for (const p of found) console.log(`\n  + ${p.name} (${p.id}) — new: not in lib/pools.js; offered in /admin/`);
 for (const line of skipped) console.log(`\n  - ${line}`);
 for (const line of problems) console.log(`\n  ! ${line}`);
-console.log(`\n${fetched.length} pools read from ${asked.length} region(s), ${problems.length} problem(s)`);
-if (REPORT) await fs.writeFile(REPORT, JSON.stringify({ read: fetched.length, problems, skipped }, null, 2) + '\n');
+console.log(`\n${fetched.length} pools read from ${asked.length} region(s), ${found.length} new, ${problems.length} problem(s)`);
+if (REPORT) {
+  await fs.writeFile(REPORT, JSON.stringify({ read: fetched.length, found: found.map(({ id, name }) => ({ id, name })), problems, skipped }, null, 2) + '\n');
+}
 
 if (!WRITE) {
-  console.log('nothing written; pass --write to put these into lib/poolinfo.js');
+  console.log('nothing written; pass --write to put these into lib/poolinfo.js and lib/newpools.js');
   process.exit(problems.length ? 1 : 0);
 }
 
@@ -809,3 +831,27 @@ function serialise(value, indent = '') {
 
 await fs.writeFile(OUT, `${header}export const POOL_INFO = ${serialise(all)};\n`);
 console.log(`wrote ${all.length} pools into lib/poolinfo.js (${fetched.length} from this run)`);
+
+/* The new pools, the same way, for /admin/: each with the directory's slug as
+   the id it offers, and what its page says. The crawl has no position for them
+   (the directory publishes none), so /admin/ finds one from the address. New
+   pools in regions this run did not ask about stay as they were. */
+let keptNew = [];
+try {
+  keptNew = (await import(pathToFileURL(NEW_OUT).href)).NEW_POOLS
+    .filter((p) => !asked.some((r) => r.slug === p.region));
+} catch { /* first run */ }
+const allNew = [...keptNew, ...found].sort((a, b) =>
+  a.region.localeCompare(b.region) || a.name.localeCompare(b.name, 'is'));
+const newHeader = `/* GENERATED by bin/fetch-pool-info.mjs from the pool directory at
+ * https://sundlaugar.is — do not edit by hand.
+ *
+ * Pools the directory lists that lib/pools.js does not, with what each one's
+ * page says, in the shape of lib/poolinfo.js. /admin/ offers each to add to the
+ * shared list, finding its position from the address. Once added, the pool is
+ * in the database, and this file keeps its details fresh for /admin/ to update.
+ */
+
+`;
+await fs.writeFile(NEW_OUT, `${newHeader}export const NEW_POOLS = ${serialise(allNew)};\n`);
+console.log(`wrote ${allNew.length} new pools into lib/newpools.js`);
