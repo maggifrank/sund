@@ -9,16 +9,18 @@
 
 import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
 import { mapHTML, bindMapTooltip, bindMapZoom } from './lib/poolmap.js';
-import { renderRegionList, poolLinkRow, POOLS_WITH_PAGES } from './lib/poolpage.js';
+import { renderRegionList, poolLinkRow, infoFor, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { BUILT_IN, allPools, poolHref } from './lib/pools.js';
 import { isAbroad } from './lib/poolmap.js';
-import { loadAddedPools } from './lib/snapshot.js';
+import { loadAddedPools, loadClosedPools } from './lib/snapshot.js';
 import { isCloud, signedIn } from './lib/cloud.js';
 
 const LANG_KEY = 'sund.lang';
 
 const ROWS = BUILT_IN.map((p) => ({ ...p, visits: null }));
 let added = [];
+/* Pools an admin has marked closed: off the map and the list. */
+let closed = new Set();
 
 let lang = detectLang();
 
@@ -55,7 +57,7 @@ const poolLink = (row) => poolHref(row.id);
 /* The built-in pools, and any in Iceland added to the shared list since. */
 const mapRows = () => [...ROWS, ...added
   .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon) && !isAbroad(p))
-  .map((p) => ({ ...p, visits: null }))];
+  .map((p) => ({ ...p, visits: null }))].filter((p) => !closed.has(p.id));
 
 function render() {
   const rows = mapRows();
@@ -64,13 +66,13 @@ function render() {
     href: poolLink
   });
   countryZoom.refresh(lang, rows);
-  ui.pagesSummary.textContent = plural(lang, POOLS_WITH_PAGES, 'pool');
-  renderRegionList(ui.pagesPanel, lang, ROWS);
+  ui.pagesSummary.textContent = plural(lang, POOLS_WITH_PAGES - [...closed].filter((id) => infoFor(id)).length, 'pool');
+  renderRegionList(ui.pagesPanel, lang, ROWS, { closed });
   renderAbroad();
 }
 
 function renderAbroad() {
-  const abroad = allPools(added).filter(isAbroad).sort((a, b) => a.name.localeCompare(b.name, 'is'));
+  const abroad = allPools(added).filter((p) => isAbroad(p) && !closed.has(p.id)).sort((a, b) => a.name.localeCompare(b.name, 'is'));
   ui.abroadCard.hidden = abroad.length === 0;
   ui.abroadSummary.textContent = plural(lang, abroad.length, 'pool');
   ui.abroadPanel.replaceChildren(...abroad.map((p) => poolLinkRow(lang, { id: p.id, name: p.name, visits: null })));
@@ -104,3 +106,4 @@ const countryZoom = bindMapZoom(ui.country, {
 });
 render();
 loadAddedPools().then((extra) => { if (extra.length) { added = extra.map(({ info, ...pool }) => pool); render(); } });
+loadClosedPools().then((ids) => { if (ids.size) { closed = ids; render(); } });

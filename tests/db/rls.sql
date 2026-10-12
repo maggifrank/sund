@@ -119,6 +119,7 @@ select t.fails($$insert into public.pools (id, name) values ('fake', 'Fake')$$,
 select t.fails($$select public.resolve_suggestion(gen_random_uuid(), 'reject')$$,
                '42501', 'B cannot act as an admin');
 select t.fails($$select public.set_pool_info('vesturbaejarlaug', '{}')$$, '42501', 'only an admin saves pool details');
+select t.fails($$select public.set_pool_status('vesturbaejarlaug', 'closed')$$, '42501', 'only an admin closes a pool');
 
 select t.fails($$insert into public.profiles (username) values ('admin')$$, '23514', 'reserved usernames are refused');
 select t.fails($$insert into public.profiles (username) values ('MAGNUS')$$, '23505', 'usernames are unique ignoring case');
@@ -225,6 +226,11 @@ select public.set_pool_info('odense-havnebad', '{"id": "x", "name": "Odense Havn
 select t.ok((select info from public.pool_info where pool_id = 'odense-havnebad') = '{"name": "Odense Havnebad", "kind": "pool"}',
             'the admin saves details for a pool');
 select t.fails($$select public.set_pool_info('no-such-pool', '{}')$$, '23503', 'details need a pool on the list');
+select public.set_pool_status('vesturbaejarlaug', 'closed');
+select t.ok((select status = 'closed' and checked_on = current_date from public.pools where id = 'vesturbaejarlaug'),
+            'the admin marks a pool closed');
+select public.set_pool_status('vesturbaejarlaug', 'open');
+select t.fails($$select public.set_pool_status('vesturbaejarlaug', 'gone')$$, '22023', 'a pool is open or closed');
 
 reset role;
 select t.ok((select pool_id from public.trips where client_id = '20000000-0000-0000-0000-000000000005') = 'vesturbaejarlaug',
