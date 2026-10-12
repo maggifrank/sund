@@ -535,7 +535,8 @@ a.icon-btn {
 
 /* The pool picker's checkboxes are inputs in the settings panel too, and this
    is a text-field look — padding and a border would distort a native box. */
-.settings input:not([type="checkbox"]) {
+.settings input:not([type="checkbox"]),
+.settings select {
   font: inherit;
   font-variant-numeric: tabular-nums;
   padding: 10px 12px;
@@ -544,6 +545,30 @@ a.icon-btn {
   background: var(--bg);
   color: var(--ink);
 }
+
+/* The card the rest of the panel is about, set apart from its fields. */
+.settings-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Over the count, only with several cards: which one the numbers are for. */
+.card-switch {
+  font: inherit;
+  font-size: 14px;
+  margin: 6px auto 0;
+  display: block;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+}
+.card-switch[hidden] { display: none; }
 
 /* The two dates read as one setting, so they sit side by side — and stack on a
    narrow phone rather than squeezing two date pickers into half a screen. */

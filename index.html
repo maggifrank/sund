@@ -30,6 +30,8 @@
 
   <section class="counter" aria-labelledby="trips-label">
     <div id="trips-label" class="label" data-i18n="counter.label"></div>
+    <!-- Only with more than one card: which one the numbers below are for. -->
+    <select id="card-switch" class="card-switch" data-i18n-aria="cards.switch" hidden></select>
     <div class="count-row">
       <button id="minus" class="step step--minus" data-i18n-aria="counter.remove">−</button>
       <output id="trips" class="count" aria-live="polite">0</output>
@@ -119,6 +121,20 @@
       </div>
 
       <div class="sheet-body settings">
+        <!-- Which card the fields below are for. Each card has its own price,
+             dates and pools; the counter shows the one picked here. -->
+        <div class="settings-cards">
+          <label><span data-i18n="cards.label"></span>
+            <select id="card-select"></select>
+          </label>
+          <label><span data-i18n="cards.name"></span>
+            <input id="in-card-name" type="text" maxlength="40" autocomplete="off">
+          </label>
+          <div class="settings-actions">
+            <button id="card-add" class="ghost-btn" type="button" data-i18n="cards.add"></button>
+            <button id="card-delete" class="danger-btn" type="button" data-i18n="cards.delete"></button>
+          </div>
+        </div>
         <label><span data-i18n="settings.membership"></span>
           <input id="in-membership" type="number" min="0" step="100" inputmode="numeric">
         </label>

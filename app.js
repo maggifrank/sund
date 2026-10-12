@@ -5,7 +5,7 @@
 import {
   emptyState, normalize, applyQueue,
   costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, poolCounts, tripAt, tripSplit,
-  poolIsOnCard, tripInSeason, dateKey, dateFromKey, cardPoolIds
+  poolIsOnCard, tripInSeason, dateKey, dateFromKey, cardPoolIds, newCardId
 } from './lib/state.js';
 import {
   LANGS, LANG_NAMES, DEFAULT_LANG, detectLang, t, plural, ordinal, formatDate, formatTime
@@ -195,6 +195,8 @@ const ui = {
   settings: el('settings'), settingsToggle: el('settings-toggle'),
   settingsPanel: el('settings-panel'), settingsGrip: el('settings-grip'),
   settingsClose: el('settings-close'),
+  cardSelect: el('card-select'), cardSwitch: el('card-switch'), inCardName: el('in-card-name'),
+  cardAdd: el('card-add'), cardDelete: el('card-delete'),
   inMembership: el('in-membership'), inCardPrice: el('in-card-price'), inCardTrips: el('in-card-trips'),
   inSeasonStart: el('in-season-start'), inSeasonEnd: el('in-season-end'),
   seasonWarning: el('season-warning'),
@@ -608,6 +610,7 @@ function render() {
   renderWeekday(state.trips);
   renderHistory(state.trips, state);
 
+  renderCards(s);
   if (document.activeElement !== ui.inMembership) ui.inMembership.value = s.membership;
   if (document.activeElement !== ui.inCardPrice) ui.inCardPrice.value = s.cardPrice;
   if (document.activeElement !== ui.inCardTrips) ui.inCardTrips.value = s.cardTrips;
@@ -624,6 +627,35 @@ function render() {
   renderCardPools(state);
 
   setStatus(status);
+}
+
+/* ---------- cards ---------- */
+
+const cardName = (card, i) => card.name ?? t(lang, 'cards.unnamed', { n: i + 1 });
+
+/* The card picker in ⚙ and, with more than one card, the one over the count.
+   Rebuilt only when the cards or the language change, so an open picker is not
+   swapped out from under a finger. */
+let cardsSig = null;
+function renderCards(s) {
+  const sig = `${lang}|${s.activeCard}|${s.cards.map((c) => `${c.id}~${c.name}`).join(',')}`;
+  if (sig !== cardsSig) {
+    cardsSig = sig;
+    const options = () => s.cards.map((c, i) => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = cardName(c, i);
+      return o;
+    });
+    ui.cardSelect.replaceChildren(...options());
+    ui.cardSwitch.replaceChildren(...options());
+    ui.cardSelect.value = s.activeCard;
+    ui.cardSwitch.value = s.activeCard;
+  }
+  ui.cardSwitch.hidden = s.cards.length < 2;
+  ui.cardDelete.disabled = s.cards.length < 2;
+  if (document.activeElement !== ui.inCardName) ui.inCardName.value = s.name ?? '';
+  ui.inCardName.placeholder = cardName({ name: null }, s.cards.findIndex((c) => c.id === s.activeCard));
 }
 
 /* Either bound alone is a complete statement — a card with only a start date
@@ -971,6 +1003,40 @@ for (const [input, key, min] of [
     enqueue({ kind: 'settings', patch: { [key]: v } });
   });
 }
+
+for (const select of [ui.cardSelect, ui.cardSwitch]) {
+  select.addEventListener('change', () => enqueue({ kind: 'settings', patch: { activeCard: select.value } }));
+}
+
+ui.inCardName.addEventListener('change', () => {
+  enqueue({ kind: 'settings', patch: { name: ui.inCardName.value.trim() || null } });
+});
+
+/* A new card starts as a copy of the one shown, with the same prices and pools,
+   running for a year from the day after it ends: renewing is the common case.
+   A card with no end date starts a new one today. */
+ui.cardAdd.addEventListener('click', () => {
+  const s = view().settings;
+  const active = s.cards.find((c) => c.id === s.activeCard);
+  const start = active.seasonEnd ? dateFromKey(active.seasonEnd) : new Date();
+  if (active.seasonEnd) start.setDate(start.getDate() + 1);
+  const end = new Date(start);
+  end.setFullYear(end.getFullYear() + 1);
+  end.setDate(end.getDate() - 1);
+  const id = newCardId(s.cards);
+  enqueue({ kind: 'settings', patch: {
+    cards: [...s.cards, { ...active, id, name: null, seasonStart: dateKey(start), seasonEnd: dateKey(end) }],
+    activeCard: id
+  } });
+});
+
+ui.cardDelete.addEventListener('click', () => {
+  const s = view().settings;
+  if (s.cards.length < 2) return;
+  const i = s.cards.findIndex((c) => c.id === s.activeCard);
+  if (!confirm(t(lang, 'cards.deleteConfirm', { name: cardName(s.cards[i], i) }))) return;
+  enqueue({ kind: 'settings', patch: { cards: s.cards.filter((c) => c.id !== s.activeCard), activeCard: '' } });
+});
 
 /* The dates on the card. Blank clears that bound, and whatever is entered is
    stored — including a range that ends before it starts, which render() says

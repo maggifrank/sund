@@ -10,7 +10,7 @@
    account and lands in the app next time; the later steps only change it. */
 
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
-import { DEFAULT_SETTINGS } from './lib/state.js';
+import { DEFAULT_SETTINGS, updateSettings } from './lib/state.js';
 import { BUILT_IN } from './lib/pools.js';
 import * as cloud from './lib/cloud.js';
 
@@ -127,14 +127,13 @@ form(2).addEventListener('submit', (e) => {
   busy(2, async () => {
     try {
       await cloud.updateProfile({
-        settings: {
-          ...settings,
+        settings: updateSettings({ settings, rev: 0 }, {
           membership: Number(el('in-membership').value),
           seasonStart: el('in-season-start').value || null,
           seasonEnd: el('in-season-end').value || null,
           cardPrice: Number(el('in-card-price').value),
           cardTrips: Math.round(Number(el('in-card-trips').value))
-        }
+        }).settings
       });
       show(3);
     } catch (err) {
