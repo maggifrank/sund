@@ -10,6 +10,9 @@
 [build]
   command = "cd .. && node bin/build-web.mjs web/dist"
   publish = "dist"
+  # Netlify skips a build when nothing under the base directory changed, but
+  # the site is built from the whole repo (lib/, public/, the app). Always build.
+  ignore = "exit 1"
 
 [[headers]]
   for = "/*"
