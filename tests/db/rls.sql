@@ -77,6 +77,11 @@ insert into public.places (id, name, lat, lon)
 insert into public.trips (at, place_id, client_id)
   values ('2026-09-20 12:00+00', '30000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-000000000005');
 
+select t.ok((select count(*) from public.pool_suggestions where place_id = '30000000-0000-0000-0000-00000000000a') = 1,
+            'a new place is offered to the shared list as it is made');
+insert into public.places (id, name, lat, lon)
+  values ('30000000-0000-0000-0000-00000000000b', 'Odense Havnebad', 55.4069, 10.3797);
+select t.fails($$select public.admin_suggestions()$$, '42501', 'only an admin reads the suggestion queue');
 select t.ok(exists (select 1 from public.suggest_place('30000000-0000-0000-0000-00000000000a') where id = 'vesturbaejarlaug'),
             'suggesting a place finds the shared pool it duplicates');
 select t.ok(exists (select 1 from public.similar_pools('arbaejarlaug') where id = 'arbaejarlaug'),
@@ -176,11 +181,31 @@ insert into public.profiles (user_id, username, is_admin) values ('00000000-0000
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
 
-select t.ok((select count(*) from public.pool_suggestions) = 1, 'the admin sees suggestions');
-select t.ok(public.resolve_suggestion((select id from public.pool_suggestions), 'merge', 'vesturbaejarlaug') = 'vesturbaejarlaug',
+select t.ok((select count(*) from public.pool_suggestions) = 2, 'the admin sees suggestions');
+select t.ok(jsonb_array_length(public.admin_suggestions()) = 2, 'the admin reads the queue');
+select t.ok((select q -> 'swims' = '1' and q -> 'similar' @> '[{"id": "vesturbaejarlaug"}]'
+             from jsonb_array_elements(public.admin_suggestions()) q where q ->> 'name' = 'Vesturbæjarsundlaug'),
+            'the queue shows the swims at a place and the pool it may duplicate');
+select t.ok(public.admin_suggestions()::text !~ '2026-09-2\d', 'the queue has no swim dates');
+reset role;
+insert into public.places (id, user_id, name, lat, lon)
+  values ('30000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000b', 'Havnebadet Odense', 55.4070, 10.3798);
+set role authenticated;
+select t.ok((select q -> 'alsoSuggested' @> '[{"name": "Havnebadet Odense", "username": "other"}]'
+             from jsonb_array_elements(public.admin_suggestions()) q where q ->> 'name' = 'Odense Havnebad'),
+            'the queue links two people''s suggestions for the same new place');
+select t.ok(public.resolve_suggestion((select id from public.pool_suggestions
+                                        where place_id = '30000000-0000-0000-0000-00000000000b'), 'add') = 'odense-havnebad',
+            'the admin adds a suggestion as a new shared pool');
+select t.ok(exists (select 1 from public.pools where id = 'odense-havnebad' and lat = 55.4069),
+            'the new pool is on the shared list with its position');
+select t.ok(public.resolve_suggestion((select id from public.pool_suggestions
+                                        where place_id = '30000000-0000-0000-0000-00000000000a'), 'merge', 'vesturbaejarlaug') = 'vesturbaejarlaug',
             'the admin merges a suggestion into an existing pool');
 select t.ok((select 'Vesturbæjarsundlaug' = any (aliases) from public.pools where id = 'vesturbaejarlaug'),
             'the merged name becomes another name for the pool');
+select t.ok((select jsonb_agg(q ->> 'name') from jsonb_array_elements(public.admin_suggestions()) q) = '["Havnebadet Odense"]',
+            'answered suggestions leave the queue');
 select t.ok((select count(*) from public.trips) = 0, 'the admin still cannot read anyone''s swims');
 
 reset role;

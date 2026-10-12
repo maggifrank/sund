@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8f4fa" media="(prefers-color-scheme: light)">
+<title>Sund · Pool suggestions</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<!-- The admin's answer to the places people name themselves: add one to the
+     shared list, merge it into a pool already on it, or leave it private.
+     English only; it is for whoever runs the site. Served at /admin/ by
+     bin/build-web.mjs, and "admin" is a reserved username. The database
+     decides who is an admin (profiles.is_admin), not this page. -->
+<main class="app app--admin">
+
+  <header class="head">
+    <a class="icon-btn" href="/app/" title="Back" aria-label="Back">←</a>
+    <h1>Pool suggestions</h1>
+  </header>
+
+  <p id="admin-status" class="note" role="status"></p>
+  <div id="admin-list" class="admin-list"></div>
+  <datalist id="all-pools"></datalist>
+
+</main>
+<script type="module" src="admin.js"></script>
+</body>
+</html>

@@ -29,6 +29,23 @@ With the Supabase CLI, from the repo root:
 
 Or paste each migration, then `seed.sql`, into the dashboard's SQL editor.
 
+## Pool suggestions
+
+Every place someone names (a swim at a pool that is not on the list) is offered
+to the shared list as it is made. An admin answers it at `/admin/`: add it as a
+new pool, merge it into a pool already on the list as another name for it, or
+keep it private. Adding or merging moves every swim logged there to the pool.
+An admin sees the place's name, position, who named it and how many swims are
+logged there, never when.
+
+Nobody can make themselves an admin. In the SQL editor:
+
+    update public.profiles set is_admin = true where username = 'franklinmagnus';
+
+A pool added this way is on the shared list in the database, so every
+signed-in person can pick it. The front page's map and pool list are still
+drawn from `lib/pools.js`, so add it there too for it to show up publicly.
+
 ## Testing it
 
     bin/test-db.sh
