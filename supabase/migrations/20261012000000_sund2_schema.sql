@@ -86,6 +86,10 @@ create table public.profiles (
   display_name text check (length(display_name) <= 60),
   lang         text not null default 'is' check (lang in ('is', 'en', 'pl')),
   public_page  boolean not null default false,
+  -- The app's card settings, as lib/state.js keeps them: membership, cardPrice,
+  -- cardTrips, seasonStart, seasonEnd and cardPools.
+  settings     jsonb not null default '{}'
+               check (jsonb_typeof(settings) = 'object' and pg_column_size(settings) < 16384),
   is_admin     boolean not null default false,
   created_at   timestamptz not null default now()
 );
@@ -246,6 +250,10 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- import_trips() moves a whole history in at once, and only into an empty account.
+  if current_setting('sund.importing', true) = 'on' then
+    return new;
+  end if;
   if (select count(*) from public.trips t
       where t.user_id = new.user_id and t.created_at > now() - interval '1 day') >= 50 then
     raise exception 'too many swims logged today' using errcode = '54000';
@@ -288,8 +296,8 @@ create policy "edit own profile" on public.profiles for update to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 grant select on public.profiles to authenticated;
 -- Never is_admin: no one makes themselves an admin.
-grant insert (user_id, username, display_name, lang, public_page) on public.profiles to authenticated;
-grant update (username, display_name, lang, public_page) on public.profiles to authenticated;
+grant insert (user_id, username, display_name, lang, public_page, settings) on public.profiles to authenticated;
+grant update (username, display_name, lang, public_page, settings) on public.profiles to authenticated;
 
 create policy "own cards" on public.cards for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -348,46 +356,141 @@ as $$
   limit 5
 $$;
 
--- What a public page may show: sums only. No swim, date, time or place leaves
--- the database through here, and nothing at all for a page that is switched
--- off. Months and weekdays are counted in Icelandic time.
+-- A date written by a person, or null when it is not one.
+create or replace function public.try_date(p text)
+returns date
+language plpgsql
+immutable
+set search_path = ''
+as $$
+begin
+  return p::date;
+exception when others then
+  return null;
+end
+$$;
+
+-- What a public page may show: sums only. It is the same snapshot the
+-- one-person site published (see bin/publish.mjs), so the public pages read it
+-- unchanged: counts per month and per weekday, the totals split by what the
+-- card covers, the pool table and the card's prices. No swim, date, time or
+-- position leaves the database through here, and nothing at all for a page
+-- that is switched off. Months and weekdays are counted in Icelandic time.
 create or replace function public.public_profile(p_username text)
 returns jsonb
-language sql
+language plpgsql
 stable
 security definer
 set search_path = ''
 as $$
-  with me as (
-    select p.user_id, p.username, p.display_name
-    from public.profiles p
-    where p.username = p_username::extensions.citext and p.public_page
-  ),
-  t as (
-    select tr.*, (tr.at at time zone 'Atlantic/Reykjavik') as local
-    from public.trips tr join me on tr.user_id = me.user_id
-  )
-  select jsonb_build_object(
-    'username', me.username,
-    'displayName', me.display_name,
-    'total', (select count(*) from t),
-    'byMonth', coalesce((select jsonb_object_agg(m, n) from
-                 (select to_char(local, 'YYYY-MM') as m, count(*) as n from t group by 1) x), '{}'),
-    'byWeekday', (select jsonb_agg(coalesce(n, 0) order by d) from generate_series(0, 6) d
-                  left join (select extract(dow from local)::int as dd, count(*) as n from t group by 1) w
-                  on w.dd = d),
-    'pools', coalesce((select jsonb_agg(jsonb_build_object('id', po.id, 'name', po.name, 'count', x.n)
-                                        order by x.n desc, po.name)
-                       from (select pool_id, count(*) as n from t where pool_id is not null group by 1) x
-                       join public.pools po on po.id = x.pool_id), '[]'),
-    'cards', coalesce((select jsonb_agg(jsonb_build_object(
-                         'kind', c.kind, 'name', c.name, 'price', c.price, 'currency', c.currency,
-                         'validFrom', c.valid_from, 'validUntil', c.valid_until, 'entries', c.entries,
-                         'trips', (select count(*) from t where t.card_id = c.id))
-                       order by c.valid_from nulls last, c.created_at)
-                       from public.cards c where c.user_id = me.user_id), '[]')
-  )
-  from me
+declare
+  me public.profiles;
+  s jsonb;
+  season_start date;
+  season_end date;
+  chosen text[];
+begin
+  select * into me from public.profiles p
+    where p.username = p_username::extensions.citext and p.public_page;
+  if not found then
+    return null;
+  end if;
+  s := me.settings;
+  season_start := public.try_date(s ->> 'seasonStart');
+  season_end := public.try_date(s ->> 'seasonEnd');
+  if jsonb_typeof(s -> 'cardPools') = 'array' then
+    chosen := array(select jsonb_array_elements_text(s -> 'cardPools'));
+  end if;
+
+  return (
+    with t as (
+      select coalesce(tr.pool_id, tr.place_id::text) as pool,
+             (tr.at at time zone 'Atlantic/Reykjavik') as local
+      from public.trips tr
+      where tr.user_id = me.user_id
+    ),
+    c as (
+      select t.*,
+             (season_start is null or t.local::date >= season_start)
+               and (season_end is null or t.local::date <= season_end) as in_season,
+             (t.pool is null or chosen is null or t.pool = any (chosen)) as on_card
+      from t
+    )
+    select jsonb_build_object(
+      'username', me.username,
+      'displayName', me.display_name,
+      'trips', '[]'::jsonb,
+      'pools', '[]'::jsonb,
+      'byMonth', coalesce((select jsonb_object_agg(m, n) from
+                   (select to_char(local, 'YYYY-MM') as m, count(*) as n from c group by 1) x), '{}'),
+      'byWeekday', (select jsonb_agg(coalesce(w.n, 0) order by d) from generate_series(0, 6) d
+                    left join (select extract(dow from local)::int as dd, count(*) as n from c group by 1) w
+                    on w.dd = d),
+      'totals', (select jsonb_build_object(
+                   'all', count(*),
+                   'counted', count(*) filter (where in_season and on_card),
+                   'outsideSeason', count(*) filter (where not in_season),
+                   'offCard', count(*) filter (where in_season and not on_card))
+                 from c),
+      'poolTable', coalesce((select jsonb_agg(jsonb_build_object(
+                                'id', x.pool, 'name', coalesce(po.name, pl.name), 'count', x.n,
+                                'card', x.pool is null or chosen is null or x.pool = any (chosen))
+                              order by x.pool is null, x.n desc, coalesce(po.name, pl.name))
+                            from (select pool, count(*) as n from c group by 1) x
+                            left join public.pools po on po.id = x.pool
+                            left join public.places pl on pl.id::text = x.pool and pl.user_id = me.user_id),
+                            '[]'),
+      'settings', jsonb_build_object(
+                    'membership', s -> 'membership', 'cardPrice', s -> 'cardPrice',
+                    'cardTrips', s -> 'cardTrips', 'seasonStart', s -> 'seasonStart',
+                    'seasonEnd', s -> 'seasonEnd', 'cardPools', null),
+      'generatedAt', now(),
+      'rev', 0
+    )
+  );
+end
+$$;
+
+-- Move a whole history in from a Sund 1.0 export: [{at, pool_id, place_id,
+-- client_id}]. Only into an account with no swims yet, so it cannot be used to
+-- get round the daily limit more than once. A pool that is not on the shared
+-- list, or a place that is not the caller's own, is dropped from its swim
+-- rather than refusing the import.
+create or replace function public.import_trips(p_trips jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  n integer;
+begin
+  if auth.uid() is null then
+    raise exception 'sign in first' using errcode = '42501';
+  end if;
+  if jsonb_typeof(p_trips) <> 'array' or jsonb_array_length(p_trips) > 20000 then
+    raise exception 'expected at most 20000 swims' using errcode = '54000';
+  end if;
+  if exists (select 1 from public.trips where user_id = auth.uid()) then
+    raise exception 'import only into an account with no swims' using errcode = '55000';
+  end if;
+
+  perform set_config('sund.importing', 'on', true);
+  -- Dated as when the swims happened, so they do not count towards today's limit.
+  insert into public.trips (user_id, at, created_at, pool_id, place_id, client_id)
+  select auth.uid(),
+         (e ->> 'at')::timestamptz,
+         least((e ->> 'at')::timestamptz, now()),
+         (select po.id from public.pools po where po.id = e ->> 'pool_id'),
+         (select pl.id from public.places pl
+           where pl.id::text = e ->> 'place_id' and pl.user_id = auth.uid()),
+         coalesce((e ->> 'client_id')::uuid, gen_random_uuid())
+  from jsonb_array_elements(p_trips) e
+  on conflict (user_id, client_id) do nothing;
+  get diagnostics n = row_count;
+  perform set_config('sund.importing', 'off', true);
+  return n;
+end
 $$;
 
 -- Delete everything about the signed-in user. Every private table cascades
@@ -478,6 +581,7 @@ grant execute on function public.pool_key(text) to anon, authenticated;
 grant execute on function public.distance_m(double precision, double precision, double precision, double precision) to anon, authenticated;
 grant execute on function public.similar_pools(text, double precision, double precision) to anon, authenticated;
 grant execute on function public.public_profile(text) to anon, authenticated;
+grant execute on function public.import_trips(jsonb) to authenticated;
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.pick_card(uuid, timestamptz, text, uuid) to authenticated;
 grant execute on function public.delete_my_account() to authenticated;
@@ -489,8 +593,8 @@ grant execute on function public.resolve_suggestion(uuid, text, text) to authent
 -- Every top-level path the site uses or may use, so no username can shadow one.
 insert into public.reserved_usernames (name) values
   ('about'), ('account'), ('admin'), ('api'), ('app'), ('assets'), ('auth'), ('callback'),
-  ('help'), ('home'), ('icons'), ('kort'), ('laug'), ('laugar'), ('lib'), ('login'), ('logout'),
+  ('export'), ('help'), ('home'), ('import'), ('icons'), ('kort'), ('laug'), ('laugar'), ('lib'), ('login'), ('logout'),
   ('manifest'), ('map'), ('me'), ('new'), ('pool'), ('pools'), ('privacy'), ('public'),
   ('settings'), ('signup'), ('static'), ('sund'), ('support'), ('talva'), ('terms'), ('user'),
-  ('users'), ('www')
+  ('users'), ('welcome'), ('www')
 on conflict do nothing;
