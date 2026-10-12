@@ -3,9 +3,9 @@
    The positions are the built-in survey in lib/pools.js and the details are
    lib/poolinfo.js, both of which ship with the page, and every row carries
    `visits: null` — no one's count at all — which the map and the list draw as
-   a plain pool rather than as one not yet swum in. Pools abroad, which the map
-   of Iceland cannot draw, are listed on their own, with any added to the
-   shared list since (the only thing fetched). */
+   a plain pool rather than as one not yet swum in. Pools added to the shared
+   list since (the only thing fetched) join the map, or, abroad, where the map
+   of Iceland cannot draw them, a list of their own. */
 
 import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
 import { mapHTML, bindMapTooltip, bindMapZoom } from './lib/poolmap.js';
@@ -52,12 +52,18 @@ function applyStaticStrings() {
 
 const poolLink = (row) => poolHref(row.id);
 
+/* The built-in pools, and any in Iceland added to the shared list since. */
+const mapRows = () => [...ROWS, ...added
+  .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon) && !isAbroad(p))
+  .map((p) => ({ ...p, visits: null }))];
+
 function render() {
-  ui.country.innerHTML = mapHTML(lang, ROWS, {
-    aria: t(lang, 'home.mapAria', { pools: plural(lang, ROWS.length, 'pool') }),
+  const rows = mapRows();
+  ui.country.innerHTML = mapHTML(lang, rows, {
+    aria: t(lang, 'home.mapAria', { pools: plural(lang, rows.length, 'pool') }),
     href: poolLink
   });
-  countryZoom.refresh(lang, ROWS);
+  countryZoom.refresh(lang, rows);
   ui.pagesSummary.textContent = plural(lang, POOLS_WITH_PAGES, 'pool');
   renderRegionList(ui.pagesPanel, lang, ROWS);
   renderAbroad();
@@ -97,4 +103,4 @@ const countryZoom = bindMapZoom(ui.country, {
   maxZoom: 48, controls: el('country-zoom'), href: poolLink
 });
 render();
-loadAddedPools().then((extra) => { if (extra.length) { added = extra.map(({ info, ...pool }) => pool); renderAbroad(); } });
+loadAddedPools().then((extra) => { if (extra.length) { added = extra.map(({ info, ...pool }) => pool); render(); } });
