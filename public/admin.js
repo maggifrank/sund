@@ -187,7 +187,9 @@ const mapLink = (lat, lon, text = 'On the map') => node('a', {
   href: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`, target: '_blank', rel: 'noopener', textContent: text
 });
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const withoutDates = ({ id, fetched, ...rest }) => rest;
+const withoutDates = ({ id, fetched, lat, lon, locatedBy, ...rest }) => rest;
+/* What goes in pool_info: the page's details, not where the crawl placed it. */
+const details = ({ lat, lon, locatedBy, ...rest }) => rest;
 
 /* "64.12, -21.93", as Google Maps copies a position, or null. */
 export function parsePosition(text) {
@@ -228,7 +230,7 @@ function newPool(p, onList) {
     update.addEventListener('click', async () => {
       update.disabled = true;
       try {
-        await cloud.rpc('set_pool_info', { p_pool: onList.id, p_info: p });
+        await cloud.rpc('set_pool_info', { p_pool: onList.id, p_info: details(p) });
         say(`Updated the details of ${onList.name} from sundlaugar.is.`);
         await loadNew();
       } catch (err) {
@@ -243,29 +245,38 @@ function newPool(p, onList) {
   const id = node('input', { type: 'text', value: p.id, required: true, pattern: '[a-z0-9]+(-[a-z0-9]+)*', spellcheck: false });
   const where = node('input', { type: 'text', placeholder: '64.1466, -21.9426', required: true, spellcheck: false });
   const found = node('p', { className: 'note' });
-  const find = node('button', { type: 'button', className: 'ghost-btn', textContent: 'Find' });
-  const showFound = () => {
+  const find = node('button', { type: 'button', className: 'ghost-btn', textContent: 'Find again' });
+  const BY = { address: 'Found by its address', name: 'Found by its name, not its address' };
+  const show = (by) => {
     const pos = parsePosition(where.value);
-    found.replaceChildren(...(pos ? ['Check it: ', mapLink(pos.lat, pos.lon)] : []));
+    found.replaceChildren(...(pos ? [`${BY[by] ?? 'Position'}. Check it: `, mapLink(pos.lat, pos.lon)] : []));
   };
-  where.addEventListener('input', showFound);
-  find.addEventListener('click', async () => {
+  where.addEventListener('input', () => show());
+  /* The crawl places each new pool when it finds it; a pool it could not place
+     is looked for again here, as soon as the section opens. */
+  const search = async () => {
     find.disabled = true;
-    found.textContent = 'Searching OpenStreetMap…';
+    found.textContent = 'Looking for it on OpenStreetMap…';
     try {
       const pos = await findPosition(p);
       if (pos) {
         where.value = `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}`;
-        showFound();
-        found.prepend(pos.by === 'address' ? 'Found by its address. ' : 'Found by its name, not its address. ');
+        show(pos.by);
       } else {
-        found.textContent = 'OpenStreetMap does not know it. Paste a position from Google Maps.';
+        found.textContent = 'OpenStreetMap does not know where it is. Type a position to add it.';
       }
     } catch (err) {
       found.textContent = `The search failed: ${err.message}`;
     }
     find.disabled = false;
-  });
+  };
+  find.addEventListener('click', search);
+  if (p.lat != null && p.lon != null) {
+    where.value = `${p.lat}, ${p.lon}`;
+    show(p.locatedBy);
+  } else {
+    search();
+  }
 
   const add = node('form', { className: 'settings admin-actions' },
     node('div', { className: 'admin-row' }, node('label', {}, 'Position', where), find),
@@ -280,7 +291,7 @@ function newPool(p, onList) {
     buttons.forEach((b) => { b.disabled = true; });
     try {
       const target = await cloud.rpc('add_pool', {
-        p_id: id.value.trim(), p_name: p.name, p_lat: pos.lat, p_lon: pos.lon, p_region: p.region, p_info: p
+        p_id: id.value.trim(), p_name: p.name, p_lat: pos.lat, p_lon: pos.lon, p_region: p.region, p_info: details(p)
       });
       say(`Added ${p.name} as ${target}, with its details from sundlaugar.is. Its page: /pool.html?id=${target}`);
       await loadNew();
