@@ -5,13 +5,17 @@
      Merge   another name for a pool already on the list
      Reject  stays private to the person who named it
 
-   Add and merge move every swim logged at the place to the pool. */
+   Add and merge move every swim logged at the place to the pool. A pool that
+   ends up with no details (address, hours, prices) is looked up on the web by
+   the pool-details Edge Function, and what it finds is saved with
+   set_pool_info(). */
 
 import * as cloud from '../lib/cloud.js';
 
 const list = document.getElementById('admin-list');
 const status = document.getElementById('admin-status');
 const allPools = document.getElementById('all-pools');
+const detailsList = document.getElementById('admin-details');
 
 const say = (text) => { status.textContent = text; };
 
@@ -43,6 +47,10 @@ async function answer(card, s, action, pool) {
        the same place should be merged into, and only a fresh read offers it. */
     await load();
     say(`${done} ${status.textContent}`.trim());
+    /* Not awaited: the queue can be answered while the lookup runs. */
+    if (action !== 'reject') {
+      loadDetails().then(() => { if (missing.has(target)) lookUp(target); }).catch(() => {});
+    }
   } catch (err) {
     buttons.forEach((b) => { b.disabled = false; });
     say(err.code === '23505' ? `There is already a pool with the id ${pool}. Pick another.`
@@ -106,6 +114,56 @@ function card(s) {
   return c;
 }
 
+/* ---------- pool details ---------- */
+
+/* Shared pools with no pool_info row, by id, and what is happening to each. */
+const missing = new Map();
+
+function detailsRow(id) {
+  const { name, state } = missing.get(id);
+  const button = node('button', { type: 'button', className: 'ghost-btn', textContent: state === 'busy' ? 'Looking up…' : 'Look up' });
+  button.disabled = state === 'busy';
+  button.addEventListener('click', () => lookUp(id));
+  const said = state === 'busy' ? ' · searching the web, this takes a minute or two'
+    : state ? ` · ${state}` : '';
+  return node('li', {}, node('span', {}, node('strong', { textContent: name }), ` ${id}${said}`), button);
+}
+
+function drawDetails() {
+  detailsList.replaceChildren(...(missing.size ? [...missing.keys()].map(detailsRow)
+    : [node('li', {}, node('span', { className: 'note', textContent: 'Every pool has its details.' }))]));
+}
+
+async function loadDetails() {
+  const pools = await cloud.rest('GET', 'pools?select=id,name,pool_info(pool_id)&order=name', { anon: true });
+  const now = new Set();
+  for (const p of pools) {
+    if ([p.pool_info].flat().filter(Boolean).length) continue;
+    now.add(p.id);
+    if (!missing.has(p.id)) missing.set(p.id, { name: p.name, state: null });
+  }
+  for (const id of missing.keys()) if (!now.has(id)) missing.delete(id);
+  drawDetails();
+}
+
+async function lookUp(id) {
+  const entry = missing.get(id);
+  if (!entry || entry.state === 'busy') return;
+  entry.state = 'busy';
+  drawDetails();
+  try {
+    const { info } = await cloud.callFunction('pool-details', { pool: id });
+    await cloud.rpc('set_pool_info', { p_pool: id, p_info: info });
+    missing.delete(id);
+    say(`Saved details for ${entry.name}. Check them on its page: /pool.html?id=${id}`);
+  } catch (err) {
+    entry.state = `not found: ${err.message}`;
+  }
+  drawDetails();
+}
+
+/* ---------- start ---------- */
+
 async function load() {
   const queue = await cloud.rpc('admin_suggestions');
   list.replaceChildren(...(queue.length ? queue.map(card) : [empty()]));
@@ -119,6 +177,7 @@ async function start() {
     const pools = await cloud.rest('GET', 'pools?select=id,name&order=name', { anon: true });
     allPools.replaceChildren(...pools.map((p) => node('option', { value: p.id, label: p.name })));
     await load();
+    await loadDetails();
   } catch (err) {
     if (err.locked) { location.replace('/login.html?next=/admin/'); return; }
     say(err.code === '42501' ? 'This page is for admins only.' : `Could not load the queue: ${err.message}`);
