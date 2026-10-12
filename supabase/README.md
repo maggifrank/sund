@@ -46,6 +46,21 @@ A pool added this way is on the shared list in the database, so every
 signed-in person can pick it. The front page's map and pool list are still
 drawn from `lib/pools.js`, so add it there too for it to show up publicly.
 
+## Pool details
+
+A pool's page shows its address, hours, prices and facilities from
+`pool_info`. The built-in pools get theirs from sundlaugar.is through the seed.
+For a pool added at `/admin/`, the admin page looks it up on OpenStreetMap
+(`lib/osmlookup.js`: Overpass for the swimming places mapped near it, Nominatim
+for a missing address) and saves what it finds with `set_pool_info()` under
+the admin's own sign-in. It runs on Add, and on Merge into a pool with no
+details. The admin page also lists every pool without details, with a Look up
+button each.
+
+It is free and needs no key. OpenStreetMap rarely has prices, and its hours are
+only as current as its last edit, so check the pool's page afterwards. The page
+credits OpenStreetMap (ODbL), as its licence requires.
+
 ## Testing it
 
     bin/test-db.sh

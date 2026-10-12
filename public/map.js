@@ -10,7 +10,7 @@
    The drawing itself is the same lib/poolmap.js the private page uses, so the
    two cannot disagree about what has been swum in. */
 
-import { loadSnapshot } from './lib/snapshot.js';
+import { loadSnapshot, loadAddedPools } from './lib/snapshot.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import {
   poolRowsFromTotals, totalsIdentifyPools, placeable, isAbroad,
@@ -22,6 +22,8 @@ import { poolHref } from './lib/pools.js';
 const LANG_KEY = 'sund.lang';
 
 let snapshot = { poolTable: null, generatedAt: null };
+/* Pools added to the shared list after lib/pools.js; see loadAddedPools(). */
+let added = [];
 let lang = detectLang();
 
 /* ---------- elements ---------- */
@@ -169,7 +171,7 @@ function render() {
   ui.noSnapshot.hidden = known;
   if (!known) return;
 
-  const rows = poolRowsFromTotals(snapshot.poolTable);
+  const rows = poolRowsFromTotals(snapshot.poolTable, added);
   /* What the page counts is Iceland's pools. One abroad is still a swim, and
      listed on its own below, but it is not one of the pools there are to get
      to, and counting it would let a holiday make the fraction look further
@@ -238,7 +240,8 @@ const countryZoom = bindMapZoom(ui.country, {
 });
 
 try {
-  const state = await loadSnapshot();
+  const [state, extra] = await Promise.all([loadSnapshot(), loadAddedPools()]);
+  added = extra;
   if (state) {
     snapshot = {
       poolTable: Array.isArray(state.poolTable) ? state.poolTable : null,

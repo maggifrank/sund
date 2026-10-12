@@ -197,6 +197,7 @@ body {
   #history-body,
   #stamps-panel,
   #todo-panel,
+  #abroad-panel,
   #pages-panel { max-width: 760px; margin-inline: auto; }
 
   /* The bottom band is three tiles deep and the pool table is the tallest of
@@ -1240,7 +1241,8 @@ label.pool-pick {
 }
 
 #stamps-panel,
-#todo-panel {
+#todo-panel,
+#abroad-panel {
   max-height: 55vh;
   overflow-y: auto;
   border-top: 1px solid var(--line);
@@ -1657,6 +1659,7 @@ a.pool-name:hover { text-decoration: underline; }
 .admin-row { display: flex; align-items: flex-end; gap: 10px; }
 .admin-row label { flex: 1; min-width: 0; }
 .admin-row button { flex: none; min-width: 88px; }
+.admin-details { margin-top: 12px; }
 .login-card { display: flex; flex-direction: column; gap: 12px; }
 .login-provider {
   display: flex;

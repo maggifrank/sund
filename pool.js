@@ -11,7 +11,7 @@ import * as cloud from './lib/cloud.js';
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { allPools } from './lib/pools.js';
 import { poolRows } from './lib/poolmap.js';
-import { renderPoolPage, poolPageSignature, infoFor } from './lib/poolpage.js';
+import { renderPoolPage, poolPageSignature, infoFor, addInfo } from './lib/poolpage.js';
 import { attachTapHaptics } from './lib/celebrate.js';
 
 const CACHE_KEY = 'sund.cache.v2';
@@ -163,6 +163,13 @@ attachTapHaptics(ui.back, { radius: '10px' });
 loadCache();
 render();
 poll({ force: true });
+/* Details for pools added to the shared list from a suggestion live in the
+   database, not in lib/poolinfo.js. */
+if (cloud.isCloud()) {
+  cloud.addedPools()
+    .then((list) => { addInfo(list.map((p) => p.info).filter(Boolean)); sig = null; render(); })
+    .catch(() => {});
+}
 
 setInterval(poll, POLL_MS);
 document.addEventListener('visibilitychange', () => {

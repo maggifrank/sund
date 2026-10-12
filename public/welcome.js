@@ -4,12 +4,12 @@
       the email address, the part before the @, and changeable here and later.
    2. The card: what it cost and when it runs, and what a punch card costs to
       compare it with. Skippable; ⚙ in the app has the same fields.
-   3. Whether the page is public, and a Sund 1.0 file to import. Both optional.
+   3. Whether the page is public. Optional.
 
    Step 1 makes the profile, so someone who leaves after it has a working
    account and lands in the app next time; the later steps only change it. */
 
-import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
+import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { DEFAULT_SETTINGS } from './lib/state.js';
 import { BUILT_IN } from './lib/pools.js';
 import * as cloud from './lib/cloud.js';
@@ -144,24 +144,7 @@ form(2).addEventListener('submit', (e) => {
 });
 form(2).querySelector('[data-skip]').addEventListener('click', () => show(3));
 
-/* ---------- step 3: the public page, and an import ---------- */
-
-el('in-import').addEventListener('change', async () => {
-  const file = el('in-import').files[0];
-  if (!file) return;
-  const status = el('import-status');
-  await busy(3, async () => {
-    try {
-      const n = await cloud.importExport(JSON.parse(await file.text()));
-      status.textContent = t(lang, 'account.importDone', { trips: plural(lang, n, 'trip') });
-      status.hidden = false;
-    } catch (err) {
-      warn(3, err.code === '55000' ? t(lang, 'account.importOnlyEmpty')
-        : t(lang, 'account.importFailed', { reason: err.message }));
-    }
-  });
-  el('in-import').value = '';
-});
+/* ---------- step 3: the public page ---------- */
 
 form(3).addEventListener('submit', (e) => {
   e.preventDefault();
