@@ -120,6 +120,7 @@ select t.fails($$select public.resolve_suggestion(gen_random_uuid(), 'reject')$$
                '42501', 'B cannot act as an admin');
 select t.fails($$select public.set_pool_info('vesturbaejarlaug', '{}')$$, '42501', 'only an admin saves pool details');
 select t.fails($$select public.set_pool_status('vesturbaejarlaug', 'closed')$$, '42501', 'only an admin closes a pool');
+select t.fails($$select public.add_pool('nyjalaug', 'Nýjalaug', 64.5, -21.5)$$, '42501', 'only an admin adds a pool');
 
 select t.fails($$insert into public.profiles (username) values ('admin')$$, '23514', 'reserved usernames are refused');
 select t.fails($$insert into public.profiles (username) values ('MAGNUS')$$, '23505', 'usernames are unique ignoring case');
@@ -231,6 +232,15 @@ select t.ok((select status = 'closed' and checked_on = current_date from public.
             'the admin marks a pool closed');
 select public.set_pool_status('vesturbaejarlaug', 'open');
 select t.fails($$select public.set_pool_status('vesturbaejarlaug', 'gone')$$, '22023', 'a pool is open or closed');
+select t.ok(public.add_pool('nyjalaug', 'Nýjalaug', 64.5, -21.5, 'vesturland',
+                            '{"id": "nyjalaug", "name": "Nýjalaug", "fetched": "2026-10-10"}') = 'nyjalaug',
+            'the admin adds a new pool from the crawl');
+select t.ok((select country = 'IS' and region = 'vesturland' and lat = 64.5 from public.pools where id = 'nyjalaug')
+            and (select fetched = '2026-10-10' and info = '{"name": "Nýjalaug", "fetched": "2026-10-10"}'
+                 from public.pool_info where pool_id = 'nyjalaug'),
+            'the new pool is on the list with its position and details');
+select t.fails($$select public.add_pool('nyjalaug', 'Nýjalaug', 64.5, -21.5)$$, '23505', 'a pool already on the list is not added again');
+select t.fails($$select public.add_pool('stadlaus', 'Staðlaus', null, null)$$, '22023', 'a new pool needs a position');
 
 reset role;
 select t.ok((select pool_id from public.trips where client_id = '20000000-0000-0000-0000-000000000005') = 'vesturbaejarlaug',

@@ -8,17 +8,18 @@
  * crawl moves it for every pool every night, and a night in which that is all
  * that moved is a night with nothing to review.
  *
- * The problems bin/fetch-pool-info.mjs --report wrote go at the top: a name the
- * directory lists that lib/pools.js does not have is how a new pool shows up,
- * and it needs a person — a position, a line in lib/pools.js — before its
- * details can be kept.
+ * The pools lib/newpools.js gained go at the top, given the two copies of it
+ * with --new: a name the directory lists that lib/pools.js does not have is
+ * how a new pool shows up, and /admin/ offers it to add once this is merged.
+ * Then the problems bin/fetch-pool-info.mjs --report wrote.
  *
  * Exits 0 whatever it finds. What it found is on the last line of stderr and,
  * under GitHub Actions, in the step's `changed` output: true when there is
  * something for a person to look at.
  *
  * Usage:
- *   node bin/diff-pool-info.mjs <old poolinfo.js> <new poolinfo.js> [--report run.json] > body.md
+ *   node bin/diff-pool-info.mjs <old poolinfo.js> <new poolinfo.js> [--report run.json]
+ *     [--new <old newpools.js> <new newpools.js>] > body.md
  */
 
 import fs from 'node:fs/promises';
@@ -27,15 +28,24 @@ import { pathToFileURL } from 'node:url';
 
 const argv = process.argv.slice(2);
 const REPORT = argv.includes('--report') ? argv[argv.indexOf('--report') + 1] : null;
-const [OLD, NEW] = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--report');
-if (!OLD || !NEW) {
-  console.error('usage: diff-pool-info.mjs <old poolinfo.js> <new poolinfo.js> [--report run.json]');
+const NEW_PAIR = argv.includes('--new') ? argv.slice(argv.indexOf('--new') + 1, argv.indexOf('--new') + 3) : null;
+const [OLD, NEW] = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--report'
+  && argv[i - 1] !== '--new' && argv[i - 2] !== '--new');
+if (!OLD || !NEW || (NEW_PAIR && NEW_PAIR.length < 2)) {
+  console.error('usage: diff-pool-info.mjs <old poolinfo.js> <new poolinfo.js> [--report run.json] [--new <old newpools.js> <new newpools.js>]');
   process.exit(2);
 }
 
 const load = async (file) => (await import(pathToFileURL(path.resolve(file)).href)).POOL_INFO;
 const before = new Map((await load(OLD)).map((p) => [p.id, p]));
 const after = new Map((await load(NEW)).map((p) => [p.id, p]));
+/* A missing copy of lib/newpools.js is an empty one: the first crawl after it
+   was added has nothing to compare against. */
+const loadNew = async (file) => {
+  try { return (await import(pathToFileURL(path.resolve(file)).href)).NEW_POOLS; } catch { return []; }
+};
+const newBefore = new Map((NEW_PAIR ? await loadNew(NEW_PAIR[0]) : []).map((p) => [p.id, p]));
+const newAfter = NEW_PAIR ? await loadNew(NEW_PAIR[1]) : [];
 const report = REPORT ? JSON.parse(await fs.readFile(REPORT, 'utf8')) : { problems: [] };
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -113,9 +123,27 @@ const changed = [...after.values()]
 const md = [];
 const link = (p) => `[${p.name}](${p.source})`;
 
+const found = newAfter.filter((p) => !newBefore.has(p.id));
+const foundChanged = newAfter.filter((p) => newBefore.has(p.id) && !same(strip(newBefore.get(p.id)), strip(p)));
+const foundGone = [...newBefore.values()].filter((p) => !newAfter.some((q) => q.id === p.id));
+if (found.length) {
+  md.push('### New on the directory', '',
+    'Not in `lib/pools.js`. Once this is merged, /admin/ offers each one to add, with its details. If one is a pool the app already has under another name, add an `ALIAS` in `bin/fetch-pool-info.mjs` instead.', '',
+    ...found.map((p) => `- ${link(p)} (${p.region})${p.address ? `, ${p.address}` : ''}`), '');
+}
+if (foundChanged.length) {
+  md.push('### New pools whose details changed', '',
+    'Merged, /admin/ offers to update the details of the ones already added.', '',
+    ...foundChanged.map((p) => `- ${link(p)} (${p.region})`), '');
+}
+if (foundGone.length) {
+  md.push('### No longer new', '',
+    'Gone from the directory, or now in `lib/pools.js`.', '',
+    ...foundGone.map((p) => `- ${link(p)} (${p.region})`), '');
+}
 if (report.problems.length) {
   md.push('### Needs a person', '',
-    'The crawl could not keep these. A name lib/pools.js does not have is usually a new pool: it needs a position and an entry in `lib/pools.js` (see `bin/survey-pools.mjs`), or an `ALIAS` in `bin/fetch-pool-info.mjs` if it is a pool the app already has under another name.', '',
+    'The crawl could not read these.', '',
     ...report.problems.map((p) => `- ${p}`), '');
 }
 if (added.length) {
@@ -123,7 +151,7 @@ if (added.length) {
 }
 if (delisted.length) {
   md.push('### No longer in the directory', '',
-    'sundlaugar.is no longer lists these. The details last read for them are kept in `lib/poolinfo.js`, and their pages say how old they are. If a pool has closed, take it out of `lib/pools.js`.', '',
+    'sundlaugar.is no longer lists these. The details last read for them are kept in `lib/poolinfo.js`, and their pages say how old they are. Once this is merged, /admin/ asks whether each one has closed.', '',
     ...delisted.map((p) => `- ${link(p)} (${p.region}), last read ${p.fetched}`), '');
 }
 if (relisted.length) {
@@ -142,13 +170,13 @@ if (changed.length) {
 }
 
 const unchanged = after.size - added.length - changed.length - delisted.length;
-const something = Boolean(report.problems.length || added.length || delisted.length || relisted.length || dropped.length || changed.length);
-md.push(`_${after.size} pools: ${changed.length} changed, ${added.length} new, ${delisted.length} no longer listed, ${unchanged} unchanged._`);
+const something = Boolean(found.length || foundChanged.length || foundGone.length || report.problems.length || added.length || delisted.length || relisted.length || dropped.length || changed.length);
+md.push(`_${after.size} pools: ${changed.length} changed, ${added.length} new, ${delisted.length} no longer listed, ${unchanged} unchanged. ${found.length} new on the directory._`);
 
 /* A pull request's body stops at 65,536 characters. A night in which that many
    changed is one to read the file's own diff anyway. */
 let body = md.join('\n') + '\n';
 if (body.length > 60000) body = body.slice(0, 60000).replace(/\n[^\n]*$/, '') + '\n\n… cut short; the rest is in the diff of `lib/poolinfo.js`.\n';
 process.stdout.write(body);
-process.stderr.write(`${something ? 'changed' : 'unchanged'}: ${changed.length} changed, ${added.length} new, ${dropped.length} dropped, ${report.problems.length} problem(s)\n`);
+process.stderr.write(`${something ? 'changed' : 'unchanged'}: ${changed.length} changed, ${added.length} new, ${dropped.length} dropped, ${found.length} new on the directory, ${report.problems.length} problem(s)\n`);
 if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `changed=${something}\n`);

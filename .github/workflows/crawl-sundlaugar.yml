@@ -4,9 +4,10 @@
 #
 # How it decides:
 #   1. bin/fetch-pool-info.mjs --all --write rewrites lib/poolinfo.js from the
-#      directory, and --report notes what it could not keep — above all a pool
-#      the directory lists that lib/pools.js does not have, which is how a new
-#      pool shows up.
+#      directory. A pool the directory lists that lib/pools.js does not have,
+#      which is how a new pool shows up, goes to lib/newpools.js, and /admin/
+#      offers it to add once the PR is merged. --report notes what it could not
+#      read.
 #   2. bin/diff-pool-info.mjs compares that against the committed file, leaving
 #      out the day each pool was read, and writes the PR body.
 #   3. Only if something other than those dates moved, or there is a problem to
@@ -53,6 +54,7 @@ jobs:
       - name: Read the directory
         run: |
           cp lib/poolinfo.js "$RUNNER_TEMP/poolinfo-before.mjs"
+          cp lib/newpools.js "$RUNNER_TEMP/newpools-before.mjs" 2>/dev/null || true
           node bin/fetch-pool-info.mjs --all --write --report "$RUNNER_TEMP/crawl.json" > "$RUNNER_TEMP/crawl.log"
           tail -n 40 "$RUNNER_TEMP/crawl.log"
 
@@ -60,7 +62,8 @@ jobs:
         id: diff
         run: |
           node bin/diff-pool-info.mjs "$RUNNER_TEMP/poolinfo-before.mjs" lib/poolinfo.js \
-            --report "$RUNNER_TEMP/crawl.json" > "$RUNNER_TEMP/changes.md"
+            --report "$RUNNER_TEMP/crawl.json" \
+            --new "$RUNNER_TEMP/newpools-before.mjs" lib/newpools.js > "$RUNNER_TEMP/changes.md"
           {
             echo 'The nightly crawl of [sundlaugar.is](https://sundlaugar.is) found the directory saying something `lib/poolinfo.js` does not. Nothing here is merged until someone reads it.'
             echo
@@ -76,7 +79,9 @@ jobs:
         with:
           branch: crawl/sundlaugar
           delete-branch: true
-          add-paths: lib/poolinfo.js
+          add-paths: |
+            lib/poolinfo.js
+            lib/newpools.js
           commit-message: Refresh pool details from sundlaugar.is
           title: What sundlaugar.is says has changed
           body-path: ${{ runner.temp }}/pr-body.md
