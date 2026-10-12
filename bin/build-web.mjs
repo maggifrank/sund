@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Build Sund 2.0 for Netlify: static files only, talking to Supabase from the
- * browser (lib/cloud.js). Run by Netlify from web/netlify.toml; nothing to
+ * browser (lib/cloud.js). Run by Netlify from netlify.toml; nothing to
  * install, no bundler, the same files the app has always served.
  *
  *   /                the front page: every pool, and the way in
@@ -13,9 +13,8 @@
  *                    address and the page asks Supabase for that username.
  *
  * Every page gets <meta name="sund-backend" content="supabase">, which is what
- * switches the shared scripts from serve.js to Supabase. netlify/functions —
- * the one-person app's read/write API — is not part of this site and must
- * never be: there is no functions directory under web/.
+ * switches the shared scripts from serve.js to Supabase. Nothing here runs on
+ * a server: the site has no functions.
  *
  * Usage: node bin/build-web.mjs [out]   (default web/dist)
  */

@@ -888,9 +888,8 @@ pages are the ones described here; with
 node serve.js
 ```
 
-Then open <http://localhost:8080>. Still no `npm install` needed — `serve.js`
-uses only the Node standard library. The `@netlify/blobs` dependency in
-`package.json` is imported solely by the Netlify function.
+Then open <http://localhost:8080>. No `npm install` needed — `serve.js`
+uses only the Node standard library.
 
 State is written to `data/state.json`, or wherever `SUND_DATA` points.
 
@@ -994,22 +993,13 @@ also refreshes a stale rate when nobody has been swimming. Set `SUND_TOKEN` if t
 an access code, and `NETLIFY_AUTH_TOKEN` to deploy from a machine without the
 Netlify CLI signed in.
 
-## Running the whole app on Netlify
+## Netlify
 
-`netlify.toml` and `netlify/functions/trips.js` implement the full read/write API
-against [Netlify Blobs](https://docs.netlify.com/blobs/overview/) instead of a
-file, claiming `/api/*` through the function's own `config.path`. It is unused —
-the app runs on the LXC — but kept working as an escape hatch.
-
-> **Do not run `netlify deploy` from this directory.** The repo's `.netlify`
-> link points at `sund-swim`, which is the *public read-only site*. A deploy
-> from here would replace that static snapshot with the read/write app and put
-> an API on a public URL. Publishing is done by `bin/publish.mjs`, which uploads
-> an explicit file list and refuses to finish if a function lands in the deploy.
-
-If you ever do want the whole app on Netlify, create a **separate site** for it,
-and set `SUND_TOKEN` in its environment first — otherwise anyone who finds the
-URL can edit the count.
+Netlify hosts Sund 2.0 only: `netlify.toml` (or `web/netlify.toml`, for a site
+whose base directory is `web`) builds the static site with `bin/build-web.mjs`.
+There is no server code on Netlify any more. The one-person app's Blobs-backed
+read/write function was removed once Sund 2.0 replaced it, so no Netlify
+setting can put a write API on a public site.
 
 ## The access code
 
@@ -1084,7 +1074,7 @@ your count, and is a shared code rather than real per-user accounts.
 | `icons/icon.svg` | the home screen icon — the source for everything else in `icons/` |
 | `manifest.webmanifest` | name and icons for "Add to Home Screen" |
 | `lib/state.js` | trips, settings and the break-even arithmetic |
-| `lib/api.js` | HTTP routing and validation, shared by both backends |
+| `lib/api.js` | HTTP routing and validation for serve.js |
 | `lib/i18n.js` | Icelandic, English and Polish strings, plurals, dates, number formats |
 | `lib/money.js` | currency per language, conversion and formatting |
 | `lib/chart.js` | the trips-per-month chart and the weekday pie, shared by both pages |
@@ -1101,7 +1091,6 @@ your count, and is a shared code rather than real per-user accounts.
 | `lib/celebrate.js` | haptics, emoji and confetti — the private app only |
 | `lib/rates.js` | ECB rate fetching and cache freshness |
 | `serve.js` | LXC backend — static files + API, file-backed, no dependencies |
-| `netlify/functions/trips.js` | unused Netlify backend — same API, Blobs-backed |
 | `bin/publish.mjs` | snapshot, build and deploy the public site |
 | `bin/build-icons.mjs` | render `icons/icon.svg` into the favicon, the Apple touch icon and the manifest PNGs |
 | `bin/build-coastline.mjs` | regenerate `lib/coastline.js` from IS 50V, and check every pool is on land |
