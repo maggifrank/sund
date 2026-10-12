@@ -239,9 +239,11 @@ const countryZoom = bindMapZoom(ui.country, {
   maxZoom: 48, controls: document.getElementById('country-zoom'), href: poolLink
 });
 
+/* The added pools come after: the page draws without them first rather than
+   wait on a second request. */
+const addedLoad = loadAddedPools();
 try {
-  const [state, extra] = await Promise.all([loadSnapshot(), loadAddedPools()]);
-  added = extra;
+  const state = await loadSnapshot();
   if (state) {
     snapshot = {
       poolTable: Array.isArray(state.poolTable) ? state.poolTable : null,
@@ -250,3 +252,4 @@ try {
   }
 } catch { /* leave the snapshot empty; render() says so */ }
 render();
+addedLoad.then((extra) => { if (extra.length) { added = extra; render(); } });

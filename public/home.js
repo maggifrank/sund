@@ -1,28 +1,33 @@
 /* The public front page: the pools, not anyone's swimming.
 
-   Nothing is fetched. The positions are the built-in survey in lib/pools.js and
-   the details are lib/poolinfo.js, both of which ship with the page, and every
-   row carries `visits: null` — no one's count at all — which the map and the
-   list draw as a plain pool rather than as one not yet swum in. Pools abroad
-   are left out: this is a map of Iceland, and the few abroad are only there
-   because someone swam in them. */
+   The positions are the built-in survey in lib/pools.js and the details are
+   lib/poolinfo.js, both of which ship with the page, and every row carries
+   `visits: null` — no one's count at all — which the map and the list draw as
+   a plain pool rather than as one not yet swum in. Pools abroad, which the map
+   of Iceland cannot draw, are listed on their own, with any added to the
+   shared list since (the only thing fetched). */
 
 import { LANGS, LANG_NAMES, detectLang, t, plural } from './lib/i18n.js';
 import { mapHTML, bindMapTooltip, bindMapZoom } from './lib/poolmap.js';
-import { renderRegionList, POOLS_WITH_PAGES } from './lib/poolpage.js';
-import { BUILT_IN, poolHref } from './lib/pools.js';
+import { renderRegionList, poolLinkRow, POOLS_WITH_PAGES } from './lib/poolpage.js';
+import { BUILT_IN, allPools, poolHref } from './lib/pools.js';
+import { isAbroad } from './lib/poolmap.js';
+import { loadAddedPools } from './lib/snapshot.js';
 import { isCloud, signedIn } from './lib/cloud.js';
 
 const LANG_KEY = 'sund.lang';
 
 const ROWS = BUILT_IN.map((p) => ({ ...p, visits: null }));
+let added = [];
 
 let lang = detectLang();
 
 const el = (id) => document.getElementById(id);
 const ui = {
   langSelect: el('lang-select'), country: el('country'),
-  pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary')
+  pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary'),
+  abroadCard: el('abroad-card'), abroadToggle: el('abroad-toggle'),
+  abroadPanel: el('abroad-panel'), abroadSummary: el('abroad-summary')
 };
 
 function applyStaticStrings() {
@@ -55,7 +60,21 @@ function render() {
   countryZoom.refresh(lang, ROWS);
   ui.pagesSummary.textContent = plural(lang, POOLS_WITH_PAGES, 'pool');
   renderRegionList(ui.pagesPanel, lang, ROWS);
+  renderAbroad();
 }
+
+function renderAbroad() {
+  const abroad = allPools(added).filter(isAbroad).sort((a, b) => a.name.localeCompare(b.name, 'is'));
+  ui.abroadCard.hidden = abroad.length === 0;
+  ui.abroadSummary.textContent = plural(lang, abroad.length, 'pool');
+  ui.abroadPanel.replaceChildren(...abroad.map((p) => poolLinkRow(lang, { id: p.id, name: p.name, visits: null })));
+}
+
+ui.abroadToggle.addEventListener('click', () => {
+  const open = ui.abroadPanel.hidden;
+  ui.abroadPanel.hidden = !open;
+  ui.abroadToggle.setAttribute('aria-expanded', String(open));
+});
 
 for (const code of LANGS) {
   const opt = document.createElement('option');
@@ -78,3 +97,4 @@ const countryZoom = bindMapZoom(ui.country, {
   maxZoom: 48, controls: el('country-zoom'), href: poolLink
 });
 render();
+loadAddedPools().then((extra) => { if (extra.length) { added = extra.map(({ info, ...pool }) => pool); renderAbroad(); } });
