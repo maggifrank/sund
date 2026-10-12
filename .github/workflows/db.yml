@@ -1,0 +1,41 @@
+# Runs the Sund 2.0 privacy checks: a throwaway Postgres with the migrations and
+# the pool list loaded, then tests/db/rls.sql as several signed-in users. See
+# bin/test-db.sh. The runner's own Postgres is used, so nothing is installed.
+name: Database
+
+on:
+  pull_request:
+    paths:
+      - supabase/**
+      - tests/db/**
+      - bin/test-db.sh
+      - bin/export-supabase-seed.mjs
+      - lib/pools.js
+      - lib/poolinfo.js
+      - .github/workflows/db.yml
+  push:
+    branches: [main]
+    paths:
+      - supabase/**
+      - tests/db/**
+      - bin/test-db.sh
+      - bin/export-supabase-seed.mjs
+      - lib/pools.js
+      - lib/poolinfo.js
+      - .github/workflows/db.yml
+
+permissions:
+  contents: read
+
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The seed is made from lib/pools.js and lib/poolinfo.js, so test the
+      # list as it is now rather than as it was when seed.sql was last written.
+      - run: node bin/export-supabase-seed.mjs
+      - run: bin/test-db.sh
