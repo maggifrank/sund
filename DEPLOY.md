@@ -17,13 +17,18 @@ Proxmox:
 pct create 110 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
   --hostname sund --cores 1 --memory 512 --rootfs local-lvm:4 \
   --net0 name=eth0,bridge=vmbr0,ip=dhcp --unprivileged 1 \
-  --features nesting=1 --start 1
+  --features nesting=1 --onboot 1 --start 1
 ```
+
+`--onboot 1` matters: without it the container stays stopped after the Proxmox
+host reboots, and the site is simply gone until someone runs `pct start`. For a
+container created without it, `pct set 110 --onboot 1` fixes it in place.
 
 LXD / Incus:
 
 ```
 lxc launch images:debian/12 sund
+lxc config set sund boot.autostart true
 ```
 
 ## 2. Get a shell inside
