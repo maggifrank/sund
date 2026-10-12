@@ -4,7 +4,7 @@
    often a pool has been swum in and never on which day. The renderer is the
    private page's, so the two cannot disagree about a pool. */
 
-import { loadSnapshot } from './lib/snapshot.js';
+import { loadSnapshot, loadAddedPools } from './lib/snapshot.js';
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { allPools } from './lib/pools.js';
 import { poolRowsFromTotals, totalsIdentifyPools } from './lib/poolmap.js';
@@ -15,6 +15,7 @@ const LANG_KEY = 'sund.lang';
 const id = new URLSearchParams(location.search).get('id') ?? '';
 
 let poolTable = null;
+let added = [];
 let lang = detectLang();
 
 const el = (name) => document.getElementById(name);
@@ -39,7 +40,7 @@ function render() {
      visits at all, rather than "no trips here yet" about every pool — the same
      line the map draws. */
   const known = totalsIdentifyPools(poolTable);
-  const rows = known ? poolRowsFromTotals(poolTable) : allPools([]).map((p) => ({ ...p, visits: null }));
+  const rows = known ? poolRowsFromTotals(poolTable, added) : allPools(added).map((p) => ({ ...p, visits: null }));
   const pool = rows.find((r) => r.id === id) ?? null;
   const published = known ? poolTable.find((r) => r.id === id) : null;
 
@@ -83,9 +84,13 @@ ui.back.addEventListener('click', (e) => {
 
 render();
 /* The front page's copy of this page belongs to nobody, so it has no snapshot
-   to read — see homePool() in bin/publish.mjs. */
-if (!document.body.hasAttribute('data-no-snapshot')) try {
-  const state = await loadSnapshot();
-  poolTable = Array.isArray(state?.poolTable) ? state.poolTable : null;
-} catch { /* no snapshot: the directory's details still stand */ }
+   to read — see homePool() in bin/publish.mjs. Either copy may be showing a
+   pool added to the shared list after lib/pools.js, which only the database
+   can place. */
+const [state, extra] = await Promise.all([
+  document.body.hasAttribute('data-no-snapshot') ? null : loadSnapshot().catch(() => null),
+  loadAddedPools()
+]);
+poolTable = Array.isArray(state?.poolTable) ? state.poolTable : null;
+added = extra;
 render();
