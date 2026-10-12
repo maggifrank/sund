@@ -18,6 +18,7 @@
  */
 
 import { normalize, tripSplit, poolCounts } from '../lib/state.js';
+import { inIceland } from '../lib/iceland.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -105,9 +106,19 @@ function publicTrips(state) {
  * Counted over the full state, which is now also what the trips cover, so the
  * table's total and `totals.all` and the history's length are three views of one
  * number. The `card` flag on each row comes from poolCounts(), so it follows
- * whichever pools the card is set to cover rather than the built-in list. */
+ * whichever pools the card is set to cover rather than the built-in list.
+ *
+ * A pool outside Iceland carries `abroad: true`, so the public map can leave it
+ * out of the count towards Iceland's pools and list it on its own. A flag and
+ * not the position, for the reason above: the page needs to know that it is
+ * abroad, not where. */
 function poolTable(state) {
-  return poolCounts(normalize(state)).map(({ id, name, count, card }) => ({ id, name, count, card }));
+  const s = normalize(state);
+  const abroad = new Set(s.pools
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon) && !inIceland(p.lat, p.lon))
+    .map((p) => p.id));
+  return poolCounts(s).map(({ id, name, count, card }) =>
+    (abroad.has(id) ? { id, name, count, card, abroad: true } : { id, name, count, card }));
 }
 
 /* Only the files the read-only pages need. lib/api.js, lib/rates.js, serve.js

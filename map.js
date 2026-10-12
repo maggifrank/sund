@@ -11,7 +11,7 @@
 import { emptyState, normalize, applyQueue } from './lib/state.js';
 import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import {
-  poolRows, placeable, mapHTML, mapSignature, bindMapTooltip, bindMapZoom
+  poolRows, placeable, isAbroad, mapHTML, mapSignature, bindMapTooltip, bindMapZoom
 } from './lib/poolmap.js';
 import { renderRegionList, poolLinkRow, POOLS_WITH_PAGES } from './lib/poolpage.js';
 import { poolHref } from './lib/pools.js';
@@ -93,6 +93,8 @@ const ui = {
   stampsToggle: el('stamps-toggle'), stampsPanel: el('stamps-panel'), stampsSummary: el('stamps-summary'),
   country: el('country'),
   todoToggle: el('todo-toggle'), todoPanel: el('todo-panel'), todoSummary: el('todo-summary'),
+  abroadCard: el('abroad-card'), abroadToggle: el('abroad-toggle'), abroadPanel: el('abroad-panel'),
+  abroadSummary: el('abroad-summary'),
   pagesToggle: el('pages-toggle'), pagesPanel: el('pages-panel'), pagesSummary: el('pages-summary')
 };
 
@@ -123,6 +125,7 @@ function setLang(next) {
   applyStaticStrings();
   mapSig = null;          // the tooltips are written in words; force a rebuild
   todoSig = null;
+  abroadSig = null;
   stampsSig = null;
   pagesSig = null;
   render();
@@ -222,21 +225,51 @@ function renderTodo(rows) {
   ui.todoPanel.replaceChildren(frag);
 }
 
+/* ---------- abroad ---------- */
+
+/* Pools outside Iceland: swum in on a trip abroad, or added there by hand. The
+   map is Iceland's and cannot draw them, and the count above is of Iceland's
+   pools, so they are listed here instead — every one of them, swum in or not,
+   each with its own page. The card is hidden while there are none, which is
+   nearly always. */
+let abroadSig = null;
+
+function renderAbroad(abroad) {
+  ui.abroadCard.hidden = abroad.length === 0;
+  ui.abroadSummary.textContent = plural(lang, abroad.length, 'pool');
+
+  const sig = lang + '|' + abroad.map((row) => `${row.id}~${row.name}~${row.visits}`).join(',');
+  if (ui.abroadPanel.hidden || sig === abroadSig) return;
+  abroadSig = sig;
+
+  const frag = document.createDocumentFragment();
+  for (const row of abroad) {
+    frag.append(poolLinkRow(lang, { id: row.id, name: row.name, visits: row.visits }));
+  }
+  ui.abroadPanel.replaceChildren(frag);
+}
+
 /* ---------- render ---------- */
 
 function render() {
   const state = view();
   const rows = poolRows(state);
-  const done = rows.filter((row) => row.visits > 0).length;
-  const unplaced = rows.filter((row) => !placeable(row)).length;
+  /* What the page counts is Iceland's pools. One abroad is still a swim, and
+     listed on its own below, but it is not one of the pools there are to get
+     to, and counting it would let a holiday make the fraction look further
+     along than it is. */
+  const home = rows.filter((row) => !isAbroad(row));
+  const abroad = rows.filter(isAbroad);
+  const done = home.filter((row) => row.visits > 0).length;
+  const unplaced = home.filter((row) => !placeable(row)).length;
 
   /* A bare fraction, for the reason the pool picker's count gives: "23 / 127"
      needs no plural and no preposition, so it is right in every language. The
      words go to a screen reader, where the numbers sit after a colon and
      nothing has to agree with them either. */
-  ui.visited.textContent = `${done} / ${rows.length}`;
-  ui.visited.setAttribute('aria-label', t(lang, 'map.visitedCount', { n: done, total: rows.length }));
-  ui.progressFill.style.width = `${rows.length ? (done / rows.length) * 100 : 0}%`;
+  ui.visited.textContent = `${done} / ${home.length}`;
+  ui.visited.setAttribute('aria-label', t(lang, 'map.visitedCount', { n: done, total: home.length }));
+  ui.progressFill.style.width = `${home.length ? (done / home.length) * 100 : 0}%`;
 
   /* Say outright when the map is not the whole list. Every pool in the survey
      has a position now, so this line usually says nothing at all — but a pool
@@ -254,7 +287,8 @@ function render() {
 
   renderMaps(rows);
   renderStamps(state, rows);
-  renderTodo(rows);
+  renderTodo(home);
+  renderAbroad(abroad);
   renderPages(rows);
 }
 
@@ -267,6 +301,13 @@ for (const code of LANGS) {
   ui.langSelect.append(opt);
 }
 ui.langSelect.addEventListener('change', () => setLang(ui.langSelect.value));
+
+ui.abroadToggle.addEventListener('click', () => {
+  const open = ui.abroadPanel.hidden;
+  ui.abroadPanel.hidden = !open;
+  ui.abroadToggle.setAttribute('aria-expanded', String(open));
+  if (open) { abroadSig = null; render(); }
+});
 
 ui.todoToggle.addEventListener('click', () => {
   const open = ui.todoPanel.hidden;
@@ -304,6 +345,7 @@ const countryZoom = bindMapZoom(ui.country, {
 attachTapHaptics(ui.back, { radius: '10px' });
 attachTapHaptics(ui.stampsToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHaptics(ui.todoToggle, { radius: 'var(--radius)', fill: 'block' });
+attachTapHaptics(ui.abroadToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHaptics(ui.pagesToggle, { radius: 'var(--radius)', fill: 'block' });
 attachTapHapticsAll(document.querySelectorAll('.map-zoom-btn'), { radius: '8px' });
 loadCache();

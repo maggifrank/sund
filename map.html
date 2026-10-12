@@ -77,6 +77,17 @@
     <div id="todo-panel" hidden></div>
   </section>
 
+  <!-- Pools outside Iceland, which the map cannot draw and the count leaves
+       out. Hidden until there is one. -->
+  <section id="abroad-card" class="card history" hidden>
+    <button id="abroad-toggle" class="disclosure" aria-expanded="false" aria-controls="abroad-panel">
+      <span class="label" data-i18n="map.abroadLabel"></span>
+      <span id="abroad-summary" class="sub"></span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div id="abroad-panel" hidden></div>
+  </section>
+
   <!-- Every pool with a page of its own, by region: the way to them that does
        not depend on hitting a mark on a map with a thumb. -->
   <section id="pages-card" class="card history map-pages">
