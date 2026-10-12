@@ -1626,6 +1626,21 @@ a.pool-name:hover { text-decoration: underline; }
 }
 
 .app--login { max-width: 480px; }
+
+/* The privacy policy and terms: running text, so a reading width. */
+.app--legal { max-width: 720px; }
+.legal { line-height: 1.55; }
+.legal h2 { font-size: 17px; margin: 22px 0 6px; }
+.legal p, .legal ul { margin: 0 0 10px; }
+.legal ul { padding-left: 20px; }
+.legal a { color: var(--accent); }
+.legal-date { color: var(--ink-dim); font-style: italic; }
+.legal-table { overflow-x: auto; margin: 0 0 10px; }
+.legal table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.legal th, .legal td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.legal-see { margin-top: 20px; }
+.legal-links { text-align: center; }
+.legal-links a { color: inherit; }
 .login-card { display: flex; flex-direction: column; gap: 12px; }
 .login-provider {
   display: flex;

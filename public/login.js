@@ -15,6 +15,7 @@ let failure = null;               // why the last attempt did not work, or null
 let working = false;
 const select = document.getElementById('lang-select');
 const contact = document.getElementById('contact');
+const legal = document.getElementById('legal');
 const status = document.getElementById('login-status');
 
 /* Only a path on this site, so a crafted link cannot send someone elsewhere
@@ -43,6 +44,16 @@ function render() {
   link.href = `mailto:${EMAIL}`;
   link.textContent = EMAIL;
   contact.replaceChildren(before, link, after);
+
+  /* The same for the terms and the privacy policy, two links in one sentence. */
+  const parts = t(lang, 'login.legal', { terms: '\u0000terms\u0000', privacy: '\u0000privacy\u0000' }).split('\u0000');
+  legal.replaceChildren(...parts.map((part) => {
+    if (part !== 'terms' && part !== 'privacy') return part;
+    const a = document.createElement('a');
+    a.href = `/${part}/`;
+    a.textContent = t(lang, `legal.${part}`);
+    return a;
+  }));
 
   status.hidden = !working && !failure;
   status.textContent = working ? t(lang, 'login.working')

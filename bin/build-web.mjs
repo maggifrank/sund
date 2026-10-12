@@ -7,6 +7,7 @@
  *   /login.html      sign in or sign up with Google or Microsoft
  *   /welcome.html    the wizard a new account goes through once
  *   /pool.html       a pool's page, nobody's swimming on it
+ *   /privacy/, /terms/  the privacy policy and terms of use
  *   /app/            the signed-in counter, its map and its pool pages
  *   /<username>/     someone's public page, sums only. One copy of the pages,
  *                    in /_u/, serves every username: _redirects rewrites the
@@ -50,7 +51,9 @@ const SITES = {
     ['public/welcome.html', 'welcome.html'],
     ['public/welcome.js', 'welcome.js'],
     ['public/pool.html', 'pool.html'],
-    ['public/pool.js', 'pool.js']
+    ['public/pool.js', 'pool.js'],
+    ['public/privacy.html', 'privacy/index.html'],
+    ['public/terms.html', 'terms/index.html']
   ],
   app: [
     ...SHARED,
