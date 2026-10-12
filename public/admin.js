@@ -138,7 +138,7 @@ function detailsRow(id) {
   const button = node('button', { type: 'button', className: 'ghost-btn', textContent: state === 'busy' ? 'Looking up…' : 'Look up' });
   button.disabled = state === 'busy';
   button.addEventListener('click', () => lookUp(id));
-  const said = state === 'busy' ? ' · searching OpenStreetMap'
+  const said = state === 'busy' ? ` · asking ${missing.get(id).asking ?? 'OpenStreetMap'}…`
     : state ? ` · ${state}` : '';
   return node('li', {}, node('span', {}, node('strong', { textContent: name }), ` ${id}${said}`), button);
 }
@@ -166,7 +166,7 @@ async function lookUp(id) {
   entry.state = 'busy';
   drawDetails();
   try {
-    const info = await lookUpOsm(entry);
+    const info = await lookUpOsm(entry, { onTry: (host) => { entry.asking = host; drawDetails(); } });
     if (info) {
       await cloud.rpc('set_pool_info', { p_pool: id, p_info: info });
       missing.delete(id);
