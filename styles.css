@@ -256,6 +256,9 @@ h1 {
   cursor: pointer;
 }
 .icon-btn:hover { color: var(--ink); }
+.sign-out-btn { display: inline-flex; align-items: center; justify-content: center; color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+.sign-out-btn:hover { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
 /* The map page's back arrow is a link, not a button: it needs the centring a
    button gets for free, and none of the underline. */
 a.icon-btn {

@@ -25,6 +25,14 @@
       <select id="lang-select" class="lang-select" data-i18n-aria="a11y.langSwitch"></select>
       <a id="map-link" class="icon-btn" href="map.html" data-i18n-title="nav.map" data-i18n-aria="nav.map">🗺</a>
       <button id="settings-toggle" class="icon-btn" aria-expanded="false" aria-controls="settings" data-i18n-title="a11y.settings">⚙</button>
+      <!-- Sund 2.0 only, like the Account section: lib/account.js shows it. -->
+      <button id="header-sign-out" class="icon-btn sign-out-btn" type="button" hidden
+              data-i18n-title="account.signOut" data-i18n-aria="account.signOut">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+        </svg>
+      </button>
     </div>
   </header>
 
