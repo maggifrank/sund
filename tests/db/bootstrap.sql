@@ -3,8 +3,8 @@
 -- what the migrations touch: the three API roles, auth.users, auth.uid() and
 -- the extensions schema.
 --
--- auth.uid() reads the same setting PostgREST sets from the JWT, so a test
--- signs in as someone with:  set local request.jwt.claim.sub = '<uuid>';
+-- auth.uid() reads the settings PostgREST sets from the JWT, so a test signs
+-- in as someone with:  set local request.jwt.claim.sub = '<uuid>';
 
 create role anon nologin;
 create role authenticated nologin;
@@ -18,9 +18,14 @@ create table auth.users (
   email text
 );
 
+-- As Supabase defines it: the older per-claim setting, or the claims PostgREST
+-- sets today.
 create function auth.uid() returns uuid
 language sql stable
-as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+as $$
+  select nullif(coalesce(current_setting('request.jwt.claim.sub', true),
+                         nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'), '')::uuid
+$$;
 
 grant usage on schema public, auth, extensions to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated;
