@@ -37,7 +37,7 @@
   </header>
 
   <section class="counter" aria-labelledby="trips-label">
-    <div id="trips-label" class="label" data-i18n="counter.label"></div>
+    <div id="trips-label" class="label"></div>
     <!-- Only with more than one card: which one the numbers below are for. -->
     <select id="card-switch" class="card-switch" data-i18n-aria="cards.switch" hidden></select>
     <div class="count-row">
@@ -52,13 +52,13 @@
     <div id="here" class="here" hidden></div>
   </section>
 
-  <section class="hero" aria-labelledby="cpt-label">
-    <div id="cpt-label" class="label" data-i18n="cost.label"></div>
+  <section id="hero-card" class="hero" aria-labelledby="cpt-label">
+    <div id="cpt-label" class="label"></div>
     <div id="cost-per-trip" class="hero-value">—</div>
     <div id="cost-per-trip-sub" class="sub"></div>
   </section>
 
-  <section class="card" aria-labelledby="be-label">
+  <section id="be-card" class="card" aria-labelledby="be-label">
     <div id="be-label" class="label"></div>
     <div class="progress" role="img">
       <div id="progress-fill" class="progress-fill" style="width:0%"></div>
@@ -67,14 +67,14 @@
     <p id="breakeven-note" class="note"></p>
   </section>
 
-  <section class="grid">
+  <section id="stats" class="grid">
     <div class="stat">
-      <div class="label" data-i18n="stat.cardPerTrip"></div>
+      <div id="stat-1-label" class="label"></div>
       <div id="card-per-trip" class="stat-value">—</div>
       <div id="card-per-trip-sub" class="sub"></div>
     </div>
     <div class="stat">
-      <div class="label" data-i18n="stat.delta"></div>
+      <div id="stat-2-label" class="label"></div>
       <div id="delta" class="stat-value">—</div>
       <div id="delta-sub" class="sub"></div>
     </div>
@@ -143,20 +143,29 @@
             <button id="card-delete" class="danger-btn" type="button" data-i18n="cards.delete"></button>
           </div>
         </div>
-        <label><span data-i18n="settings.membership"></span>
+        <!-- How this card pays: none (a counter, priced at the door), a year card
+             or a punch card. The fields below follow it; see setCardFields(). -->
+        <label><span data-i18n="settings.cardType"></span>
+          <select id="in-card-type">
+            <option value="none" data-i18n="cardType.none"></option>
+            <option value="year" data-i18n="cardType.year"></option>
+            <option value="punch" data-i18n="cardType.punch"></option>
+          </select>
+        </label>
+        <label id="row-membership"><span data-i18n="settings.membership"></span>
           <input id="in-membership" type="number" min="0" step="100" inputmode="numeric">
         </label>
-        <div class="settings-pair">
-          <label><span data-i18n="settings.seasonStart"></span>
+        <div id="row-season" class="settings-pair">
+          <label><span id="season-start-label"></span>
             <input id="in-season-start" type="date">
           </label>
-          <label><span data-i18n="settings.seasonEnd"></span>
+          <label><span id="season-end-label"></span>
             <input id="in-season-end" type="date">
           </label>
         </div>
         <p id="season-warning" class="settings-warning" hidden></p>
 
-        <div class="settings-pools">
+        <div id="row-pools" class="settings-pools">
           <div class="settings-pools-head">
             <span data-i18n="settings.cardPools"></span>
             <span id="card-pools-count" class="settings-pools-count"></span>
@@ -167,10 +176,10 @@
           <div id="card-pool-list" class="pool-picker"></div>
           <p id="pool-no-match" class="settings-warning" hidden></p>
         </div>
-        <label><span data-i18n="settings.cardPrice"></span>
+        <label id="row-card-price"><span id="card-price-label"></span>
           <input id="in-card-price" type="number" min="0" step="100" inputmode="numeric">
         </label>
-        <label><span data-i18n="settings.cardTrips"></span>
+        <label id="row-card-trips"><span data-i18n="settings.cardTrips"></span>
           <input id="in-card-trips" type="number" min="1" step="1" inputmode="numeric">
         </label>
         <!-- Sund 2.0 only: lib/account.js shows it when the app is signed in to

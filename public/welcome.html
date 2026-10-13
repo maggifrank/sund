@@ -43,24 +43,31 @@
   <form id="step-2" class="card login-card settings" data-step="2" hidden>
     <p id="step-label-2" class="note step-label"></p>
     <p class="home-lead" data-i18n="welcome.cardLead"></p>
-    <label><span data-i18n="settings.membership"></span>
-      <input id="in-membership" type="number" min="0" step="100" inputmode="numeric" required>
+    <label><span data-i18n="settings.cardType"></span>
+      <select id="in-card-type">
+        <option value="none" data-i18n="cardType.none"></option>
+        <option value="year" data-i18n="cardType.year"></option>
+        <option value="punch" data-i18n="cardType.punch"></option>
+      </select>
     </label>
-    <div class="settings-pair">
-      <label><span data-i18n="settings.seasonStart"></span>
+    <label id="row-membership"><span data-i18n="settings.membership"></span>
+      <input id="in-membership" type="number" min="0" step="100" inputmode="numeric">
+    </label>
+    <div id="row-season" class="settings-pair">
+      <label><span id="season-start-label"></span>
         <input id="in-season-start" type="date">
       </label>
-      <label><span data-i18n="settings.seasonEnd"></span>
+      <label><span id="season-end-label"></span>
         <input id="in-season-end" type="date">
       </label>
     </div>
-    <label><span data-i18n="settings.cardPrice"></span>
-      <input id="in-card-price" type="number" min="0" step="100" inputmode="numeric" required>
+    <label id="row-card-price"><span id="card-price-label"></span>
+      <input id="in-card-price" type="number" min="0" step="100" inputmode="numeric">
     </label>
-    <label><span data-i18n="settings.cardTrips"></span>
-      <input id="in-card-trips" type="number" min="1" step="1" inputmode="numeric" required>
+    <label id="row-card-trips"><span data-i18n="settings.cardTrips"></span>
+      <input id="in-card-trips" type="number" min="1" step="1" inputmode="numeric">
     </label>
-    <p class="note" data-i18n="welcome.cardPoolsNote"></p>
+    <p id="row-pools" class="note" data-i18n="welcome.cardPoolsNote"></p>
     <p class="settings-warning" role="alert" hidden></p>
     <div class="settings-actions">
       <button type="button" class="ghost-btn" data-skip data-i18n="welcome.skip"></button>

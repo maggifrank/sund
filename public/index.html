@@ -37,7 +37,7 @@
   </header>
 
   <section class="counter" aria-labelledby="trips-label">
-    <div id="trips-label" class="label" data-i18n="counter.label"></div>
+    <div id="trips-label" class="label"></div>
     <div class="count-row count-row--readonly">
       <output id="trips" class="count">0</output>
     </div>
@@ -45,13 +45,13 @@
     <div id="season" class="sub" hidden></div>
   </section>
 
-  <section class="hero" aria-labelledby="cpt-label">
-    <div id="cpt-label" class="label" data-i18n="cost.label"></div>
+  <section id="hero-card" class="hero" aria-labelledby="cpt-label">
+    <div id="cpt-label" class="label"></div>
     <div id="cost-per-trip" class="hero-value">—</div>
     <div id="cost-per-trip-sub" class="sub"></div>
   </section>
 
-  <section class="card" aria-labelledby="be-label">
+  <section id="be-card" class="card" aria-labelledby="be-label">
     <div id="be-label" class="label"></div>
     <div class="progress" role="img">
       <div id="progress-fill" class="progress-fill" style="width:0%"></div>
@@ -60,14 +60,14 @@
     <p id="breakeven-note" class="note"></p>
   </section>
 
-  <section class="grid">
+  <section id="stats" class="grid">
     <div class="stat">
-      <div class="label" data-i18n="stat.cardPerTrip"></div>
+      <div id="stat-1-label" class="label"></div>
       <div id="card-per-trip" class="stat-value">—</div>
       <div id="card-per-trip-sub" class="sub"></div>
     </div>
     <div class="stat">
-      <div class="label" data-i18n="stat.delta"></div>
+      <div id="stat-2-label" class="label"></div>
       <div id="delta" class="stat-value">—</div>
       <div id="delta-sub" class="sub"></div>
     </div>

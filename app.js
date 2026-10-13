@@ -3,10 +3,11 @@
    still works with a phone in a pool changing room on one bar of signal. */
 
 import {
-  emptyState, normalize, applyQueue,
-  costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, poolCounts, tripAt, tripSplit,
+  emptyState, normalize, applyQueue, poolCounts, tripAt, tripSplit, cardTrips,
   poolIsOnCard, tripInSeason, dateKey, dateFromKey, cardPoolIds, newCardId
 } from './lib/state.js';
+import { cardUi, renderCardFigures, setCardFields } from './lib/cardview.js';
+import { loadPrices, doorTotal } from './lib/poolprice.js';
 import {
   LANGS, LANG_NAMES, DEFAULT_LANG, detectLang, t, plural, ordinal, formatDate, formatTime
 } from './lib/i18n.js';
@@ -177,6 +178,19 @@ async function poll({ force = false } = {}) {
 /* ---------- elements ---------- */
 
 const el = (id) => document.getElementById(id);
+/* Single entry prices by pool, for a punch card or no card (lib/poolprice.js).
+   null until loaded. */
+let prices = null;
+let pricesLoading = false;
+function loadPoolPrices() {
+  if (pricesLoading) return;
+  pricesLoading = true;
+  (CLOUD ? cloud.addedPools().catch(() => []) : Promise.resolve([]))
+    .then((added) => loadPrices(added))
+    .then((map) => { prices = map; render(); })
+    .catch(() => { pricesLoading = false; });
+}
+
 const ui = {
   trips: el('trips'), lastSwim: el('last-swim'), streak: el('streak'), plus: el('plus'), minus: el('minus'),
   beLabel: el('be-label'),
@@ -199,11 +213,13 @@ const ui = {
   cardAdd: el('card-add'), cardDelete: el('card-delete'),
   inMembership: el('in-membership'), inCardPrice: el('in-card-price'), inCardTrips: el('in-card-trips'),
   inSeasonStart: el('in-season-start'), inSeasonEnd: el('in-season-end'),
+  inCardType: el('in-card-type'),
   seasonWarning: el('season-warning'),
   cardPoolList: el('card-pool-list'), cardPoolsCount: el('card-pools-count'),
   poolFilter: el('pool-filter'), poolNoMatch: el('pool-no-match'),
   exportBtn: el('export'), resetBtn: el('reset')
 };
+const cardFigures = cardUi(el);
 
 /* ---------- language ---------- */
 
@@ -534,10 +550,6 @@ function render() {
      chart, the history and the pool table, but never in the money. */
   const split = tripSplit(state);
   const n = split.counted;
-  const be = breakEvenTrips(s);
-  const cashBe = cashBreakEvenTrips(s);
-  const perCardTrip = cardPerTrip(s);
-  const cards = Math.ceil(s.membership / s.cardPrice);
 
   ui.trips.textContent = n;
   /* − removes the most recent trip whatever it is, so it follows the total and
@@ -554,7 +566,8 @@ function render() {
   ui.streak.textContent = streak ?? '';
   /* The big number is card swims only, so state the total outright rather than
      leaving it to be inferred from the difference — and say which of the two
-     reasons kept each of the rest out, rather than lumping them together. */
+     reasons kept each of the rest out, rather than lumping them together. With
+     no card every swim counts, and there is nothing to split. */
   const parts = [t(lang, 'counter.total', { trips: plural(lang, split.total, 'trip') })];
   if (split.outsideSeason) {
     parts.push(t(lang, 'counter.outsideSeason', { trips: plural(lang, split.outsideSeason, 'trip') }));
@@ -562,46 +575,14 @@ function render() {
   if (split.offCard) {
     parts.push(t(lang, 'counter.offCard', { trips: plural(lang, split.offCard, 'trip') }));
   }
-  ui.offCard.hidden = split.total === 0;
+  ui.offCard.hidden = split.total === 0 || s.cardType === 'none';
   ui.offCard.textContent = parts.join(' · ');
 
-  const season = seasonLine(s);
-  ui.season.hidden = season === null;
-  ui.season.textContent = season ?? '';
-
-  const cpt = costPerTrip(s, n);
-  ui.costPerTrip.textContent = cpt === null ? '—' : money(lang, cpt, rates);
-  ui.costPerTrip.classList.toggle('is-empty', cpt === null);
-  ui.costPerTripSub.textContent = cpt === null
-    ? t(lang, 'cost.unused', { total: money(lang, s.membership, rates) })
-    : t(lang, 'cost.sub', { total: money(lang, s.membership, rates), trips: plural(lang, n, 'trip') });
-
-  ui.beLabel.textContent = t(lang, 'be.label', { n: s.cardTrips });
-  ui.progressFill.style.width = `${Math.min(100, (n / be) * 100)}%`;
-  if (n >= be) {
-    ui.breakevenLine.textContent = n === be
-      ? t(lang, 'be.exact')
-      : t(lang, 'be.past', { trips: plural(lang, n - be, 'trip') });
-  } else {
-    ui.breakevenLine.textContent = n === 0
-      ? t(lang, 'be.start', { trips: plural(lang, be, 'trip') })
-      : t(lang, 'be.toGo', { left: plural(lang, be - n, 'trip'), total: be });
-  }
-  ui.breakevenNote.textContent = t(lang, 'be.note', {
-    cardTrips: s.cardTrips, perTrip: money(lang, perCardTrip, rates), be, cashBe,
-    cards: ordinal(lang, cards)      // "3." in is/pl, "3rd" in en
-  });
-
-  ui.cardPerTrip.textContent = money(lang, perCardTrip, rates);
-  ui.cardPerTripSub.textContent = t(lang, 'stat.cardPerTripSub', {
-    price: money(lang, s.cardPrice, rates), trips: plural(lang, s.cardTrips, 'trip')
-  });
-
-  const delta = perCardTrip * n - s.membership;
-  ui.delta.textContent = (delta >= 0 ? '+' : '−') + money(lang, Math.abs(delta), rates);
-  ui.delta.classList.toggle('is-good', delta >= 0);
-  ui.delta.classList.toggle('is-bad', delta < 0);
-  ui.deltaSub.textContent = delta >= 0 ? t(lang, 'stat.saved') : t(lang, 'stat.owed');
+  /* What the card's swims came to at the door, for a punch card or no card.
+     The prices load once, on the first render that needs them. */
+  if (s.cardType !== 'year' && !prices) loadPoolPrices();
+  const door = prices && s.cardType !== 'year' ? doorTotal(cardTrips(state), prices) : null;
+  renderCardFigures(cardFigures, { lang, s, n, rates, door });
 
   renderRateNote();
   renderHere();
@@ -611,6 +592,8 @@ function render() {
   renderHistory(state.trips, state);
 
   renderCards(s);
+  ui.inCardType.value = s.cardType;
+  setCardFields(document, lang, s.cardType);
   if (document.activeElement !== ui.inMembership) ui.inMembership.value = s.membership;
   if (document.activeElement !== ui.inCardPrice) ui.inCardPrice.value = s.cardPrice;
   if (document.activeElement !== ui.inCardTrips) ui.inCardTrips.value = s.cardTrips;
@@ -656,18 +639,6 @@ function renderCards(s) {
   ui.cardDelete.disabled = s.cards.length < 2;
   if (document.activeElement !== ui.inCardName) ui.inCardName.value = s.name ?? '';
   ui.inCardName.placeholder = cardName({ name: null }, s.cards.findIndex((c) => c.id === s.activeCard));
-}
-
-/* Either bound alone is a complete statement — a card with only a start date
-   counts everything from that day on — so each combination gets its own
-   sentence rather than an em-dash with a blank on one side. */
-function seasonLine(s) {
-  const from = s.seasonStart ? formatDate(lang, dateFromKey(s.seasonStart), 'full') : null;
-  const to = s.seasonEnd ? formatDate(lang, dateFromKey(s.seasonEnd), 'full') : null;
-  if (from && to) return t(lang, 'season.range', { from, to });
-  if (from) return t(lang, 'season.from', { from });
-  if (to) return t(lang, 'season.until', { to });
-  return null;
 }
 
 /* ---------- actions ---------- */
@@ -1007,6 +978,10 @@ for (const [input, key, min] of [
 for (const select of [ui.cardSelect, ui.cardSwitch]) {
   select.addEventListener('change', () => enqueue({ kind: 'settings', patch: { activeCard: select.value } }));
 }
+
+ui.inCardType.addEventListener('change', () => {
+  enqueue({ kind: 'settings', patch: { cardType: ui.inCardType.value } });
+});
 
 ui.inCardName.addEventListener('change', () => {
   enqueue({ kind: 'settings', patch: { name: ui.inCardName.value.trim() || null } });
