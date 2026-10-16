@@ -11,7 +11,7 @@
    account and lands in the app next time; the later steps only change it. */
 
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
-import { DEFAULT_SETTINGS, updateSettings } from './lib/state.js';
+import { DEFAULT_SETTINGS, normalize, updateSettings } from './lib/state.js';
 import { BUILT_IN } from './lib/pools.js';
 import { setCardFields } from './lib/cardview.js';
 import * as cloud from './lib/cloud.js';
@@ -119,8 +119,9 @@ el('in-username').addEventListener('input', render);
 let settings = null;
 
 async function fillCard() {
-  const state = await cloud.fetchState();
-  settings = state.settings;
+  /* Read back as the app reads it: step 1 saves one flat card, and
+     updateSettings() works on the list of cards that normalize() makes of it. */
+  settings = normalize(await cloud.fetchState()).settings;
   el('in-card-type').value = settings.cardType;
   setCardFields(document, lang, settings.cardType);
   el('in-membership').value = settings.membership ?? '';
