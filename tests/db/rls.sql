@@ -180,6 +180,16 @@ select t.ok(public.public_profile('magnus')::text !~ '2026-09-\d\d[T ]\d', 'the 
 -- that happened to land on second 21.96, which failed CI once.
 select t.ok(public.public_profile('magnus')::text !~ '64\.1466|-21\.9658', 'the public page has no private place positions');
 reset role;
+update public.profiles set settings = settings || '{"cardType": "none"}' where username = 'magnus';
+set role anon;
+select t.ok(public.public_profile('magnus') -> 'totals' = '{"all": 5, "counted": 5, "offCard": 0, "outsideSeason": 0}'
+            and public.public_profile('magnus') #>> '{settings,cardType}' = 'none',
+            'with no card, the public page counts every swim and says there is no card');
+reset role;
+update public.profiles set settings = settings - 'cardType' where username = 'magnus';
+set role anon;
+select t.ok(public.public_profile('magnus') #>> '{settings,cardType}' = 'year', 'a profile saved before card types is a year card');
+reset role;
 insert into public.trips (user_id, at, place_id, client_id)
   values ('00000000-0000-0000-0000-00000000000a', '2026-09-25 12:00+00', '30000000-0000-0000-0000-00000000000b', gen_random_uuid());
 set role anon;

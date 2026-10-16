@@ -2,8 +2,9 @@
 
    1. A username, which is also the address of the public page. Suggested from
       the email address, the part before the @, and changeable here and later.
-   2. The card: what it cost and when it runs, and what a punch card costs to
-      compare it with. Skippable; ⚙ in the app has the same fields.
+   2. How they pay: no card, a year card or a punch card, and for a card what
+      it cost and when it runs. Skippable, which leaves no card; ⚙ in the app
+      has the same fields.
    3. Whether the page is public. Optional.
 
    Step 1 makes the profile, so someone who leaves after it has a working
@@ -12,6 +13,7 @@
 import { LANGS, LANG_NAMES, detectLang, t } from './lib/i18n.js';
 import { DEFAULT_SETTINGS, updateSettings } from './lib/state.js';
 import { BUILT_IN } from './lib/pools.js';
+import { setCardFields } from './lib/cardview.js';
 import * as cloud from './lib/cloud.js';
 
 const LANG_KEY = 'sund.lang';
@@ -51,6 +53,7 @@ function render() {
   const name = el('in-username').value || username || '…';
   el('username-lead').textContent = t(lang, 'welcome.usernameLead', { name });
   el('public-label').textContent = `${t(lang, 'welcome.public')} (sund.talva.is/${username || name})`;
+  setCardFields(document, lang, el('in-card-type').value);
 }
 
 function show(n) {
@@ -85,6 +88,9 @@ form(1).addEventListener('submit', (e) => {
           lang,
           settings: {
             ...DEFAULT_SETTINGS,
+            /* No card until they say they have one: a new account is a counter
+               that adds up what each swim cost at the door. */
+            cardType: 'none',
             seasonStart: today.toISOString().slice(0, 10),
             seasonEnd: inAYear.toISOString().slice(0, 10),
             /* Every pool, written out: in the app a card with no list of its
@@ -115,6 +121,8 @@ let settings = null;
 async function fillCard() {
   const state = await cloud.fetchState();
   settings = state.settings;
+  el('in-card-type').value = settings.cardType;
+  setCardFields(document, lang, settings.cardType);
   el('in-membership').value = settings.membership ?? '';
   el('in-season-start').value = settings.seasonStart ?? '';
   el('in-season-end').value = settings.seasonEnd ?? '';
@@ -128,6 +136,7 @@ form(2).addEventListener('submit', (e) => {
     try {
       await cloud.updateProfile({
         settings: updateSettings({ settings, rev: 0 }, {
+          cardType: el('in-card-type').value,
           membership: Number(el('in-membership').value),
           seasonStart: el('in-season-start').value || null,
           seasonEnd: el('in-season-end').value || null,
@@ -142,6 +151,7 @@ form(2).addEventListener('submit', (e) => {
   });
 });
 form(2).querySelector('[data-skip]').addEventListener('click', () => show(3));
+el('in-card-type').addEventListener('change', () => setCardFields(document, lang, el('in-card-type').value));
 
 /* ---------- step 3: the public page ---------- */
 

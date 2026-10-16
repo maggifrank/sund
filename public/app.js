@@ -4,11 +4,11 @@
    lib/ modules the private app uses, so the two cannot disagree. */
 
 import { loadSnapshot, loadRates } from './lib/snapshot.js';
-import { isCloud } from './lib/cloud.js';
-import {
-  normalize, costPerTrip, cardPerTrip, breakEvenTrips, cashBreakEvenTrips, dateFromKey
-} from './lib/state.js';
-import { LANGS, LANG_NAMES, detectLang, t, plural, ordinal, formatDate } from './lib/i18n.js';
+import { isCloud, addedPools } from './lib/cloud.js';
+import { normalize } from './lib/state.js';
+import { cardUi, renderCardFigures } from './lib/cardview.js';
+import { loadPrices, doorTotal } from './lib/poolprice.js';
+import { LANGS, LANG_NAMES, detectLang, t, plural, formatDate } from './lib/i18n.js';
 import { money, isConverted, rateString, currencyFor } from './lib/money.js';
 import {
   chartHTML, chartSignature, weekdayHTML, weekdaySignature,
@@ -21,6 +21,8 @@ const LANG_KEY = 'sund.lang';
 let snapshot = { monthTrips: [], weekdayTrips: [], settings: null, generatedAt: null, totals: null, poolTable: null };
 let rates = null;
 let lang = detectLang();
+/* Single entry prices by pool, for a punch card or no card. null until loaded. */
+let prices = null;
 
 const el = (id) => document.getElementById(id);
 const ui = {
@@ -34,6 +36,7 @@ const ui = {
   season: el('season'),
   pools: el('pools'), poolTable: el('pool-table')
 };
+const cardFigures = cardUi(el);
 
 /* ---------- language ---------- */
 
@@ -109,27 +112,12 @@ function renderRateNote() {
     : t(lang, 'rate.unavailable');
 }
 
-/* Either bound alone is a complete statement — the same three sentences the
-   private app uses. */
-function seasonLine(s) {
-  const from = s.seasonStart ? formatDate(lang, dateFromKey(s.seasonStart), 'full') : null;
-  const to = s.seasonEnd ? formatDate(lang, dateFromKey(s.seasonEnd), 'full') : null;
-  if (from && to) return t(lang, 'season.range', { from, to });
-  if (from) return t(lang, 'season.from', { from });
-  if (to) return t(lang, 'season.until', { to });
-  return null;
-}
-
 function render() {
   const s = snapshot.settings;
   if (!s) return;
   /* Every figure below the counter is about the card, and comes from the
      published totals: the snapshot carries no swims to count. */
   const n = snapshot.totals?.counted ?? 0;
-  const be = breakEvenTrips(s);
-  const cashBe = cashBreakEvenTrips(s);
-  const perCardTrip = cardPerTrip(s);
-  const cards = Math.ceil(s.membership / s.cardPrice);
 
   ui.updated.textContent = snapshot.generatedAt
     ? t(lang, 'public.updated', { date: formatDate(lang, snapshot.generatedAt, 'full') })
@@ -140,7 +128,7 @@ function render() {
   /* The big number is card swims only — the same split the app makes. Totals are
      published as counts, so an older snapshot without them simply hides this. */
   const totals = snapshot.totals;
-  if (!totals || !totals.all) {
+  if (!totals || !totals.all || s.cardType === 'none') {
     ui.offCard.hidden = true;
     ui.offCard.textContent = '';
   } else {
@@ -155,45 +143,12 @@ function render() {
     ui.offCard.textContent = parts.join(' · ');
   }
 
-  /* The dates bound every figure on this page, so they are stated rather than
-     left to be guessed from where the history starts. */
-  const season = seasonLine(s);
-  ui.season.hidden = season === null;
-  ui.season.textContent = season ?? '';
-
-  const cpt = costPerTrip(s, n);
-  ui.costPerTrip.textContent = cpt === null ? '—' : money(lang, cpt, rates);
-  ui.costPerTrip.classList.toggle('is-empty', cpt === null);
-  ui.costPerTripSub.textContent = cpt === null
-    ? t(lang, 'cost.unused', { total: money(lang, s.membership, rates) })
-    : t(lang, 'cost.sub', { total: money(lang, s.membership, rates), trips: plural(lang, n, 'trip') });
-
-  ui.beLabel.textContent = t(lang, 'be.label', { n: s.cardTrips });
-  ui.progressFill.style.width = `${Math.min(100, (n / be) * 100)}%`;
-  if (n >= be) {
-    ui.breakevenLine.textContent = n === be
-      ? t(lang, 'be.exact')
-      : t(lang, 'be.past', { trips: plural(lang, n - be, 'trip') });
-  } else {
-    ui.breakevenLine.textContent = n === 0
-      ? t(lang, 'be.start', { trips: plural(lang, be, 'trip') })
-      : t(lang, 'be.toGo', { left: plural(lang, be - n, 'trip'), total: be });
-  }
-  ui.breakevenNote.textContent = t(lang, 'be.note', {
-    cardTrips: s.cardTrips, perTrip: money(lang, perCardTrip, rates), be, cashBe,
-    cards: ordinal(lang, cards)
-  });
-
-  ui.cardPerTrip.textContent = money(lang, perCardTrip, rates);
-  ui.cardPerTripSub.textContent = t(lang, 'stat.cardPerTripSub', {
-    price: money(lang, s.cardPrice, rates), trips: plural(lang, s.cardTrips, 'trip')
-  });
-
-  const delta = perCardTrip * n - s.membership;
-  ui.delta.textContent = (delta >= 0 ? '+' : '−') + money(lang, Math.abs(delta), rates);
-  ui.delta.classList.toggle('is-good', delta >= 0);
-  ui.delta.classList.toggle('is-bad', delta < 0);
-  ui.deltaSub.textContent = delta >= 0 ? t(lang, 'stat.saved') : t(lang, 'stat.owed');
+  /* What the card's swims came to at the door, from the published pool table:
+     a count per pool, which is all the sum needs. */
+  const door = prices && s.cardType !== 'year'
+    ? doorTotal((snapshot.poolTable ?? []).filter((r) => r.card !== false), prices)
+    : null;
+  renderCardFigures(cardFigures, { lang, s, n, rates, door });
 
   renderRateNote();
   renderPools(snapshot.poolTable);
@@ -254,6 +209,11 @@ if (state) {
   };
 }
 render();
+if (snapshot.settings && snapshot.settings.cardType !== 'year') {
+  loadPrices(isCloud() ? await addedPools().catch(() => []) : [])
+    .then((map) => { prices = map; render(); })
+    .catch(() => {});
+}
 
 function showMissing() {
   const card = document.createElement('section');
