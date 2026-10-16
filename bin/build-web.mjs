@@ -15,8 +15,9 @@
  *                    address and the page asks Supabase for that username.
  *
  * Every page gets <meta name="sund-backend" content="supabase">, which is what
- * switches the shared scripts from serve.js to Supabase. Nothing here runs on
- * a server: the site has no functions.
+ * switches the shared scripts from serve.js to Supabase, and lib/visit.js,
+ * which counts the visit. Nothing here runs on a server: the site has no
+ * functions.
  *
  * Usage: node bin/build-web.mjs [out]   (default web/dist)
  */
@@ -169,7 +170,14 @@ async function moduleGraph(entry, seen = new Set()) {
 for (const e of await fs.readdir(OUT, { withFileTypes: true, recursive: true })) {
   if (!e.isFile() || !/\.html?$/.test(e.name)) continue;
   const file = path.join(e.parentPath ?? e.path, e.name);
-  const html = await fs.readFile(file, 'utf8');
+  let html = await fs.readFile(file, 'utf8');
+  /* The visit counter, from the lib/ of the page's own site (/app/, /_u/ or the
+     root), so it shares the page's copy of cloud.js. After the page's script,
+     which is the one the preloads below are worked out from. */
+  const site = path.relative(OUT, file).split(path.sep)[0];
+  const lib = path.join(OUT, Object.hasOwn(SITES, site) ? site : '', 'lib', 'visit.js');
+  html = html.replace('</body>', `<script type="module" src="${path.relative(path.dirname(file), lib).split(path.sep).join('/')}"></script>\n</body>`);
+  await fs.writeFile(file, html);
   const script = html.match(/<script type="module" src="([^"]+)"/);
   if (!script) continue;
   const entry = path.resolve(path.dirname(file), script[1]);

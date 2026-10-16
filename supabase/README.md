@@ -82,6 +82,17 @@ under the admin's own sign-in. GitHub holds no database key. A pool already
 added is offered its details again when the crawl reads newer ones
 (`set_pool_info()`). Needs migration `20261012180000_add_pool.sql`.
 
+## Visit counts
+
+Every page the 2.0 site builds loads `lib/visit.js`, which calls
+`count_visit()` once per page load. `visit_days` keeps one row per day: page
+views, visitors (browsers counted for the first time that day) and newcomers
+(browsers never counted before). Nothing else is stored: no address, no page,
+no identifier. The browser keeps the date of its last counted visit in
+localStorage, which is how it knows whether it is new today. `/admin/` shows
+the last 30 days and the sums through `admin_visits()`. Needs migration
+`20261016000000_visit_counts.sql`.
+
 ## Testing it
 
     bin/test-db.sh

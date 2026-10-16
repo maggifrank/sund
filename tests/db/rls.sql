@@ -258,6 +258,24 @@ reset role;
 select t.ok((select pool_id from public.trips where client_id = '20000000-0000-0000-0000-000000000005') = 'vesturbaejarlaug',
             'swims at the merged place move to the shared pool');
 
+-- ------------------------------------------------------------ visit counts
+set role anon;
+select public.count_visit(true, true);
+select public.count_visit(true, false);
+select public.count_visit(false, false);
+select public.count_visit(false, true);
+select t.fails($$select * from public.visit_days$$, '42501', 'nobody reads the visit counts directly');
+select t.fails($$select public.admin_visits()$$, '42501', 'an anonymous visitor cannot read the visit counts');
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+select t.fails($$select public.admin_visits()$$, '42501', 'only an admin reads the visit counts');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+select t.ok((select v -> 'days' -> 0 = jsonb_build_object('day', (now() at time zone 'utc')::date, 'views', 4, 'visitors', 2, 'newcomers', 1)
+                    and (v ->> 'newcomers')::int = 1 and (v ->> 'views')::int = 4
+             from public.admin_visits() v),
+            'the admin reads views, visitors and newcomers by day');
+reset role;
+
 -- ------------------------------------------------------------ deleting an account
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';

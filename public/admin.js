@@ -17,7 +17,9 @@
 
    Below that, the pools sundlaugar.is has stopped listing (`delisted` in
    lib/poolinfo.js): still open, or closed? The answer is saved with
-   set_pool_status(). */
+   set_pool_status().
+
+   Last, how many people visit the site (lib/visit.js), from admin_visits(). */
 
 import * as cloud from '../lib/cloud.js';
 import { findPosition, lookUpOsm } from '../lib/osmlookup.js';
@@ -30,6 +32,7 @@ const allPools = document.getElementById('all-pools');
 const detailsList = document.getElementById('admin-details');
 const listingList = document.getElementById('admin-listing');
 const newList = document.getElementById('admin-new');
+const visitsBox = document.getElementById('admin-visits');
 
 const say = (text) => { status.textContent = text; };
 
@@ -350,6 +353,25 @@ async function setStatus(pool, value, buttons) {
   }
 }
 
+/* ---------- visitors ---------- */
+
+async function loadVisits() {
+  const v = await cloud.rpc('admin_visits');
+  if (!v.since) {
+    visitsBox.replaceChildren(node('p', { className: 'note', textContent: 'No visits counted yet.' }));
+    return;
+  }
+  const sum = (key, n) => v.days.slice(0, n).reduce((a, d) => a + d[key], 0);
+  const total = node('p', {}, `${v.newcomers} people and ${v.views} page views since ${day(v.since)}. `,
+    `${sum('visitors', 1)} visitors today, ${sum('visitors', 7)} in the last 7 days, ${sum('visitors', 30)} in the last 30.`);
+  const head = node('tr', {}, ...['Day', 'Visitors', 'New', 'Views'].map((t) => node('th', { textContent: t })));
+  const rows = v.days.map((d) => node('tr', {},
+    node('td', { textContent: day(d.day) }),
+    ...[d.visitors, d.newcomers, d.views].map((n) => node('td', { textContent: n }))));
+  visitsBox.replaceChildren(total,
+    node('div', { className: 'legal-table' }, node('table', {}, node('thead', {}, head), node('tbody', {}, ...rows))));
+}
+
 /* ---------- start ---------- */
 
 async function load() {
@@ -371,6 +393,9 @@ async function start() {
     await loadDetails();
     await loadListing().catch((err) => {
       listingList.replaceChildren(node('li', {}, node('span', { className: 'note', textContent: `Could not check: ${err.message}. Has the pool status migration run?` })));
+    });
+    await loadVisits().catch((err) => {
+      visitsBox.replaceChildren(node('p', { className: 'note', textContent: `Could not count: ${err.message}. Has the visit count migration run?` }));
     });
   } catch (err) {
     if (err.locked) { location.replace('/login.html?next=/admin/'); return; }
