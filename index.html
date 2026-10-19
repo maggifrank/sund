@@ -95,6 +95,28 @@
     <div id="pool-table"></div>
   </section>
 
+  <!-- The private dashboard's own charts, all of them read off dates: lib/insights.js.
+       The public page never gets these; it shows sums only. -->
+  <section class="card" aria-labelledby="records-label">
+    <div id="records-label" class="label" data-i18n="records.label"></div>
+    <div id="records"></div>
+  </section>
+
+  <section class="card" aria-labelledby="race-label">
+    <div id="race-label" class="label" data-i18n="race.label"></div>
+    <div id="race"></div>
+  </section>
+
+  <section class="card" aria-labelledby="hours-label">
+    <div id="hours-label" class="label" data-i18n="hours.label"></div>
+    <div id="hours"></div>
+  </section>
+
+  <section class="card calendar" aria-labelledby="cal-label">
+    <div id="cal-label" class="label" data-i18n="cal.label"></div>
+    <div id="calendar"></div>
+  </section>
+
   <section class="card history">
     <button id="history-toggle" class="disclosure" aria-expanded="false" aria-controls="history-panel">
       <span class="label" data-i18n="history.label"></span>

@@ -126,6 +126,7 @@ body {
      columns below start again underneath. */
   .app--dash > .head,
   .app--dash > .history,
+  .app--dash > .calendar,
   .app--dash > .rate-note { column-span: all; }
 
   /* Half of a 1200px board is 593px, and the count row sets its minus and plus
@@ -965,6 +966,119 @@ label.pool-pick {
   }
   @keyframes slice-open { from { opacity: 0; transform: scale(.8); } }
 }
+
+/* ---- records, the year so far, time of day, calendar (lib/insights.js) ---- */
+
+/* Four bests as a two-by-two of small stat tiles inside one card. */
+.records {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-top: 12px;
+}
+.record-label { font-size: 13px; color: var(--ink-dim); }
+.record .stat-value { margin-top: 2px; }
+.record .sub { margin-top: 2px; }
+
+.race-delta { font-weight: 650; color: var(--ink); }
+.race-delta.is-good { color: var(--good); }
+.race-delta.is-bad { color: var(--bad); }
+
+/* This year is the line; the years before it are context in the recessive
+   step of the same hue, the way the pie treats every day but the busiest. */
+.race-line {
+  fill: none;
+  stroke: var(--chart-mark);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.race-line.is-past { stroke: var(--chart-mark-dim); }
+.race-dot { fill: var(--chart-mark); stroke: var(--chart-surface); stroke-width: 2; }
+/* The year's name sits on the lines it labels, so it wears a halo of the card
+   to stay legible where one crosses it. */
+.race-label {
+  fill: var(--ink-dim);
+  font-size: 9px;
+  paint-order: stroke;
+  stroke: var(--chart-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.race-label.is-current { fill: var(--ink); font-weight: 650; }
+.crosshair { stroke: var(--ink-dim); stroke-width: 1; opacity: 0; pointer-events: none; }
+.crosshair[data-show="1"] { opacity: .5; }
+
+.insight-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+.insight-legend li { display: flex; align-items: center; gap: 6px; }
+.key-line { width: 14px; height: 2px; border-radius: 1px; background: var(--chart-mark); }
+.key-line.is-past { background: var(--chart-mark-dim); }
+
+#hours.is-hovering .bar:not(.is-hover),
+#hours.is-hovering .bar-label:not(.is-hover) { opacity: .3; }
+#hours .axis-text.is-hover { fill: var(--ink); font-weight: 700; }
+
+/* A week to a column, Monday at the top, as a wall calendar would have it.
+   Plain HTML rather than SVG: a scaled viewBox would grow the weekday and
+   month names with the board until they were the loudest thing on it, and a
+   grid keeps the type at the page's size however wide the cells get. */
+.cal-wrap { margin-top: 12px; }
+.cal {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: auto repeat(7, auto);
+  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: max-content;
+  gap: 2px;
+}
+.cal-head, .cal-wd {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+/* A month's name may run on over the next week's column; nothing else is
+   ever in that row to collide with. */
+.cal-head { height: 12px; overflow: visible; }
+.cal-wd { padding-right: 4px; align-self: center; }
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--chart-grid);
+}
+.cal-day[data-level="1"] { background: var(--chart-mark-dim); }
+.cal-day[data-level="2"] { background: var(--chart-mark); }
+.cal-day.is-future { background: transparent; }
+.cal .cal-day:hover { outline: 2px solid var(--ink); outline-offset: 0; }
+
+/* Below the board the calendar is a phone's width, where 53 columns would be
+   specks: it keeps the latest half year, and the sum above says so. */
+.cal-sum-half { display: none; }
+@media (max-width: 759px) {
+  .cal [data-old] { display: none; }
+  .calendar .cal-sum-year { display: none; }
+  .calendar .cal-sum-half { display: inline; }
+}
+
+.cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+.cal-legend > span:first-child { margin-right: 4px; }
+.cal-legend .cal-day { width: 10px; }
 
 .lang-select {
   font: inherit;
