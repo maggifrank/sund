@@ -129,6 +129,31 @@ expects one and for screen readers.
 
 A day nobody has swum on keeps its legend row at zero. That is an answer too.
 
+## Records, the year so far, time of day, the calendar
+
+Four more cards below the pool table, on your own dashboard only
+(`lib/insights.js`). Every one of them is built out of dates, and the public page
+shows sums only, so it never imports this file.
+
+- **Your records** — best month, longest weekly streak (the same weeks the streak
+  line counts), longest break between swims and how many different pools, each
+  with when. A tie goes to the latest. Today is never part of a break: a day with
+  no swim *yet* is not a day without one.
+- **Year to date** — the running total through the year, this year against the
+  two before it that have swims. Emphasis again: this year takes the chart mark,
+  earlier years the recessive step, and the headline says how far ahead or behind
+  last year you are on the same day.
+- **Time of day** — swims by the hour they were logged. Backdated swims are left
+  out: their midday is a placeholder, and counting them would put a false spike
+  at noon.
+- **Swim calendar** — one cell per day for the last 53 weeks, Monday at the top,
+  in three steps of the one hue (none, one, more). Plain HTML grid rather than
+  SVG, so the labels stay at the page's size on a wide board. A phone shows the
+  latest 26 weeks, and the sum above it says six months instead of twelve.
+
+All four reuse the colour tokens the monthly chart and the pie were validated
+with; nothing new was added to the palette.
+
 ## The card's dates
 
 A membership runs for a year, and the app used to have no idea when that year

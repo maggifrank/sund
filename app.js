@@ -19,6 +19,9 @@ import {
 import { matchPool, idFor, allPools } from './lib/pools.js';
 import { renderPoolTable } from './lib/pooltable.js';
 import { weekStreak, streakText } from './lib/passport.js';
+import {
+  insightsSignature, recordsHTML, raceHTML, hoursHTML, calendarHTML, bindInsightTips, isBackdated
+} from './lib/insights.js';
 import { celebrateAdd, celebratePool, celebrateRemove, attachTapHaptics, attachTapHapticsAll } from './lib/celebrate.js';
 import * as cloud from './lib/cloud.js';
 import { bindAccount } from './lib/account.js';
@@ -202,6 +205,7 @@ const ui = {
   rateNote: el('rate-note'), here: el('here'), poolTable: el('pool-table'), offCard: el('off-card'),
   season: el('season'),
   chart: el('chart'), weekday: el('weekday'),
+  records: el('records'), race: el('race'), hours: el('hours'), calendar: el('calendar'),
   historyToggle: el('history-toggle'), historyPanel: el('history-panel'), historyBody: el('history-body'),
   historySummary: el('history-summary'),
   backdate: el('backdate'), backdateDate: el('backdate-date'), backdateError: el('backdate-error'),
@@ -250,6 +254,7 @@ function setLang(next) {
   historySig = null;        // month names and plurals changed; force a rebuild
   chartSig = null;
   weekdaySig = null;
+  insightsSig = null;
   render();
 }
 
@@ -439,14 +444,24 @@ function renderWeekday(trips) {
   ui.weekday.innerHTML = weekdayHTML(lang, trips);
 }
 
-/* ---------- history ---------- */
+/* ---------- records, the year so far, time of day, calendar ---------- */
 
-/* Backdated trips are anchored at local midday, so an exact midday reading
-   means "no time was recorded" and the row shows the date alone. Milliseconds
-   are ignored: a second trip backdated to the same day is nudged a millisecond
-   along to keep its timestamp unique, and it is still a backdated trip. */
-const isBackdated = (d) =>
-  d.getHours() === 12 && d.getMinutes() === 0 && d.getSeconds() === 0;
+let insightsSig = null;
+
+/* All four from one signature: they read the same trips, and each moves
+   whenever any trip does. */
+function renderInsights(state) {
+  const sig = insightsSignature(lang, state.trips);
+  if (sig === insightsSig) return;
+  insightsSig = sig;
+  const names = new Map(poolCounts(state).filter((row) => row.id).map((row) => [row.id, row.name]));
+  ui.records.innerHTML = recordsHTML(lang, state.trips, names);
+  ui.race.innerHTML = raceHTML(lang, state.trips);
+  ui.hours.innerHTML = hoursHTML(lang, state.trips);
+  ui.calendar.innerHTML = calendarHTML(lang, state.trips);
+}
+
+/* ---------- history ---------- */
 
 let historySig = null;
 
@@ -589,6 +604,7 @@ function render() {
   renderPools(state);
   renderChart(state.trips);
   renderWeekday(state.trips);
+  renderInsights(state);
   renderHistory(state.trips, state);
 
   renderCards(s);
@@ -1081,6 +1097,8 @@ applyStaticStrings();
 bindChartTooltip(ui.chart);
 bindChartHighlight(ui.chart);
 bindChartHighlight(ui.weekday);
+for (const box of [ui.race, ui.hours, ui.calendar]) bindInsightTips(box);
+bindChartHighlight(ui.hours);
 /* An iPhone has no Vibration API, so every tappable control borrows its tick
    from an invisible native switch laid over it. A no-op everywhere the real
    thing works, and the listeners above stay on the buttons themselves, which
