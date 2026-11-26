@@ -129,7 +129,8 @@ insert into public.pools (id, name, country, region, lat, lon) values
   ('skatalaug', 'Skátalaug', 'IS', 'reykjanes', 63.90394, -22.04317),
   ('snorralaug', 'Snorralaug', 'IS', 'vesturland', 64.66399, -21.29122),
   ('viti-vid-oskjuvatn', 'Víti við Öskjuvatn', 'IS', 'halendid', 65.04674, -16.72591),
-  ('hilton-chicago', 'Hilton Chicago', null, null, 41.8725, -87.62436)
+  ('hilton-chicago', 'Hilton Chicago', null, null, 41.8725, -87.62436),
+  ('clarion-hotel-copenhagen-airport', 'Clarion Hotel Copenhagen Airport', 'DK', null, 55.63017, 12.65084)
 on conflict (id) do update set
   name = excluded.name, country = excluded.country, region = excluded.region,
   lat = excluded.lat, lon = excluded.lon;
